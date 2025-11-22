@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { ProjectRegistry } from "./ProjectRegistry.sol";
 import { ProjectData } from "./ProjectData.sol";
 import { CallConfirmation4of4 } from "./CallConfirmation4of4.sol";
-import { RewardVault } from "./RewardVault.sol";
+import { IRewardVault } from "./IRewardVault.sol";
 
 /// @title Main
 /// @notice Glue contract that holds references to the ProjectRegistry, a RewardVault,
@@ -14,10 +14,10 @@ contract Main {
     ProjectRegistry public immutable projectRegistry;
 
     /// @notice Reward vault holding the funds / tokens
-    RewardVault public immutable vault;
+    IRewardVault public immutable vault;
 
     /// @notice Owner (can create projects, register project multisigs, update prices)
-    address public immutable owner;
+    address public owner;
 
     /// @notice Per-project multisig (4-of-4) contracts
     /// @dev keyed by the same `key` used in ProjectRegistry.projects mapping
@@ -41,8 +41,8 @@ contract Main {
 
     /// @notice Set registry and vault at deployment time
     /// @param _projectRegistry Already-deployed ProjectRegistry
-    /// @param _vault           Already-deployed RewardVault (ERC4626-style)
-    constructor(ProjectRegistry _projectRegistry, RewardVault _vault) {
+    /// @param _vault           Already-deployed RewardVault (ERC4626-style or Native)
+    constructor(ProjectRegistry _projectRegistry, IRewardVault _vault) {
         require(address(_projectRegistry) != address(0), "registry = zero");
         require(address(_vault) != address(0), "vault = zero");
 
@@ -54,6 +54,12 @@ contract Main {
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
         _;
+    }
+
+    /// @notice Transfer ownership to a new owner (single-step)
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "new owner = zero");
+        owner = newOwner;
     }
 
     // ------------------------------------------------------------------------

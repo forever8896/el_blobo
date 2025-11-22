@@ -20,7 +20,7 @@ contract ProjectRegistry {
     // -----------------------------
 
     /// @notice Admin / status controller for the ProjectData
-    address public immutable owner;
+    address public owner;
 
     /// @notice Mapping of address → project
     /// @dev You can interpret `key` as:
@@ -47,13 +47,15 @@ contract ProjectRegistry {
         owner = _owner;
     }
 
-    // -----------------------------
-    // Modifiers
-    // -----------------------------
-
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
         _;
+    }
+
+    /// @notice Transfer ownership to a new owner (single-step)
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "new owner = zero");
+        owner = newOwner;
     }
 
     // -----------------------------

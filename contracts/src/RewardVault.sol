@@ -22,7 +22,7 @@ contract RewardVault is ERC4626 {
     address public immutable vaultOwner;
 
     /// @notice Owner allowed to update registrationPrice (can be same as vaultOwner)
-    address public immutable owner;
+    address public owner;
 
     /// @notice Price per SHARE_UNIT (1 gwei of shares) in units of underlying asset
     /// @dev registrationPrice = assets / SHARE_UNIT
@@ -64,6 +64,12 @@ contract RewardVault is ERC4626 {
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
         _;
+    }
+
+    /// @notice Transfer ownership to a new owner (single-step)
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "new owner = zero");
+        owner = newOwner;
     }
 
     // ------------------------------------------------------------------------

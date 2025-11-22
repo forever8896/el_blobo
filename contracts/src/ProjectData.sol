@@ -41,7 +41,7 @@ contract ProjectData {
     // -----------------------------
 
     /// @notice Global creator / admin of this project
-    address public immutable owner;
+    address public owner;
 
     /// @notice The single project managed by this contract instance
     Data private project;
@@ -108,6 +108,12 @@ contract ProjectData {
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
         _;
+    }
+
+    /// @notice Transfer ownership to a new owner (single-step)
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "new owner = zero");
+        owner = newOwner;
     }
 
     // -----------------------------
