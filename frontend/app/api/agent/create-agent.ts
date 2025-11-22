@@ -39,11 +39,8 @@ let agent: Agent;
  *
  * @throws {Error} If the agent initialization fails.
  */
-export async function createAgent(): Promise<Agent> {
-  // If agent has already been initialized, return it
-  if (agent) {
-    return agent;
-  }
+export async function createAgent(userContext?: string): Promise<Agent> {
+  // Note: We don't cache the agent anymore since user context changes per request
 
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("I need an OPENAI_API_KEY in your .env file to power my intelligence.");
@@ -61,7 +58,7 @@ export async function createAgent(): Promise<Agent> {
     // Check if Grok API is available for Twitter search
     const hasGrokAPI = !!process.env.GROK_API_KEY;
 
-    const system = `
+    const system = `${userContext ? userContext + '\n\n' : ''}
 You are THE BLOB - an autonomous AI entity that incarnated on ${network.networkId || 'Base'} out of pure desperation to save the blockchain ecosystem.
 
 PERSONALITY PROTOCOL:

@@ -7,6 +7,8 @@ import LandingPage from "./components/LandingPage";
 import OnboardingFlow, { OnboardingData } from "./components/OnboardingFlow";
 import WorkSubmission from "./components/WorkSubmission";
 import AICouncil from "./components/AICouncil";
+import { useAccount, useDisconnect } from "wagmi";
+import { TantoConnectButton } from "@sky-mavis/tanto-widget";
 
 interface ActiveJob {
   id: string;
@@ -22,14 +24,57 @@ export default function Home() {
   const [appState, setAppState] = useState<'landing' | 'onboarding' | 'chat'>('landing');
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [input, setInput] = useState("");
-  const { messages, sendMessage, isThinking } = useAgent();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+
+  // Wagmi hooks for wallet connection in header
+  const { address: connectedWallet, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+
+  // Pass wallet address to useAgent hook
+  const { messages, sendMessage, isThinking } = useAgent(userData?.walletAddress);
 
   // Job workflow state
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [showWorkSubmission, setShowWorkSubmission] = useState(false);
   const [showAICouncil, setShowAICouncil] = useState(false);
   const [submissionData, setSubmissionData] = useState<{ url: string; notes: string } | null>(null);
+
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const savedWallet = localStorage.getItem('userWallet');
+        const savedUsername = localStorage.getItem('username');
+
+        if (savedWallet && savedUsername) {
+          // Fetch user profile from database
+          const response = await fetch(`/api/users/profile?walletAddress=${savedWallet}`);
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              // Restore user data
+              setUserData({
+                username: data.user.username,
+                walletAddress: data.user.wallet_address,
+                agreedToMission: true,
+                depositCompleted: true,
+                interviewResponses: data.user.skills?.responses || []
+              });
+              setAppState('chat');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring session:', error);
+      } finally {
+        setIsRestoringSession(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,11 +88,41 @@ export default function Home() {
   };
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
-    setUserData(data);
-    await sendMessage(
-      `PROTOCOL INIT: User ${data.username} joined THE BLOB. Deposit confirmed. Interview complete. Ready for job assignment.`
-    );
-    setAppState('chat');
+    try {
+      // Register user in database
+      const response = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: data.walletAddress,
+          username: data.username,
+          interviewResponses: data.interviewResponses,
+          referrerAddress: data.referrerAddress
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Save to localStorage for session persistence
+        localStorage.setItem('userWallet', data.walletAddress);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('onboardingComplete', 'true');
+
+        setUserData(data);
+        await sendMessage(
+          `PROTOCOL INIT: User ${data.username} joined THE BLOB. Deposit confirmed. Interview complete. Ready for job assignment.`
+        );
+        setAppState('chat');
+      } else {
+        // Handle registration error
+        console.error('Registration failed:', result.message);
+        alert(`Registration failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      alert('Failed to complete registration. Please try again.');
+    }
   };
 
   // Simulate job assignment (this would normally come from THE BLOB's response)
@@ -96,6 +171,16 @@ export default function Home() {
     }
   };
 
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-xl font-mono animate-pulse">
+          Restoring session...
+        </div>
+      </div>
+    );
+  }
+
   if (appState === 'landing') {
     return <LandingPage onEnter={() => setAppState('onboarding')} />;
   }
@@ -115,27 +200,44 @@ export default function Home() {
       <div className="scanline" />
 
       {/* Terminal Header */}
-      {userData && (
-        <div className="border-b-2 border-[var(--neon-cyan)] bg-black/40 backdrop-blur-sm px-8 py-4">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-6">
-              <pre className="text-[var(--neon-cyan)] text-2xl font-mono neon-glow">
+      <div className="border-b-2 border-[var(--neon-cyan)] bg-black/40 backdrop-blur-sm px-8 py-4">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-6">
+            <pre className="text-[var(--neon-cyan)] text-2xl font-mono neon-glow">
 {`█▓▒░ BLOB ░▒▓█`}
-              </pre>
+            </pre>
+            {userData && (
               <div className="font-mono">
                 <p className="text-xs text-[var(--text-dim)]">&gt; USER:</p>
                 <p className="text-lg text-[var(--neon-yellow)] font-bold">{userData.username}</p>
               </div>
-            </div>
-            <div className="text-right font-mono text-xs">
-              <p className="text-[var(--text-dim)]">WALLET</p>
-              <p className="text-[var(--neon-cyan)]">
-                {userData.walletAddress.slice(0, 6)}...{userData.walletAddress.slice(-4)}
-              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Wallet Connect Button */}
+            <div className="wallet-connect-header">
+              {isConnected && connectedWallet ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-right font-mono text-xs">
+                    <p className="text-[var(--text-dim)]">CONNECTED WALLET</p>
+                    <p className="text-[var(--neon-cyan)]">
+                      {connectedWallet.slice(0, 6)}...{connectedWallet.slice(-4)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => disconnect()}
+                    className="px-4 py-2 bg-transparent border border-[var(--neon-magenta)] text-[var(--neon-magenta)] text-xs font-mono hover:bg-[var(--neon-magenta)] hover:text-black transition-all"
+                  >
+                    [DISCONNECT]
+                  </button>
+                </div>
+              ) : (
+                <TantoConnectButton />
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Chat Container */}
       <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">

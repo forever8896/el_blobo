@@ -2,8 +2,10 @@ import { AgentRequest, AgentResponse } from "@/app/types/api";
 import { NextResponse } from "next/server";
 import { createAgent } from "./create-agent";
 import { Message, generateId, generateText } from "ai";
+import { supabaseServer } from "@/app/lib/db-server";
 
-const messages: Message[] = [];
+// Store messages per user wallet address
+const userMessages: Record<string, Message[]> = {};
 
 /**
  * Handles incoming POST requests to interact with the AgentKit-powered AI agent.
@@ -26,17 +28,54 @@ export async function POST(
   req: Request & { json: () => Promise<AgentRequest> },
 ): Promise<NextResponse<AgentResponse>> {
   try {
-    // 1️. Extract user message from the request body
-    const { userMessage } = await req.json();
+    // 1. Extract user message and wallet address from the request body
+    const { userMessage, walletAddress } = await req.json();
 
-    // 2. Get the agent
-    const agent = await createAgent();
+    // 2. Fetch user profile if wallet address is provided
+    let userContext = '';
+    if (walletAddress) {
+      try {
+        const { data: user } = await supabaseServer
+          .from('users')
+          .select('*')
+          .eq('wallet_address', walletAddress.toLowerCase())
+          .single();
 
-    // 3.Start streaming the agent's response
-    messages.push({ id: generateId(), role: "user", content: userMessage });
+        if (user) {
+          userContext = `
+USER CONTEXT:
+- Username: ${user.username}
+- Wallet: ${user.wallet_address}
+- Skills/Interests: ${user.skills?.responses ? user.skills.responses.join('; ') : 'Not available'}
+- Member since: ${new Date(user.created_at).toLocaleDateString()}
+
+Use this context to personalize job recommendations and interactions.
+`;
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    }
+
+    // Get or initialize messages for this user
+    const userWallet = walletAddress || 'anonymous';
+    if (!userMessages[userWallet]) {
+      userMessages[userWallet] = [];
+    }
+
+    // 3. Get the agent with user context
+    const agent = await createAgent(userContext);
+
+    // 4. Start streaming the agent's response
+    userMessages[userWallet].push({
+      id: generateId(),
+      role: "user",
+      content: userMessage
+    });
+
     const { text } = await generateText({
       ...agent,
-      messages,
+      messages: userMessages[userWallet],
       // Enable experimental features for web and Twitter search
       experimental_telemetry: {
         isEnabled: true,
@@ -44,10 +83,34 @@ export async function POST(
       maxSteps: agent.maxSteps,
     });
 
-    // 4. Add the agent's response to the messages
-    messages.push({ id: generateId(), role: "assistant", content: text });
+    // 5. Add the agent's response to the messages
+    userMessages[userWallet].push({
+      id: generateId(),
+      role: "assistant",
+      content: text
+    });
 
-    // 5️. Return the final response
+    // 6. Save messages to database if user is authenticated
+    if (walletAddress) {
+      try {
+        await Promise.all([
+          supabaseServer.from('chat_messages').insert({
+            user_address: walletAddress.toLowerCase(),
+            role: 'user',
+            content: userMessage
+          }),
+          supabaseServer.from('chat_messages').insert({
+            user_address: walletAddress.toLowerCase(),
+            role: 'assistant',
+            content: text
+          })
+        ]);
+      } catch (error) {
+        console.error('Error saving chat messages:', error);
+      }
+    }
+
+    // 7. Return the final response
     return NextResponse.json({ response: text });
   } catch (error) {
     console.error("Error processing request:", error);

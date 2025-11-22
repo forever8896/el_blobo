@@ -16,6 +16,7 @@ export interface OnboardingData {
   referrerAddress?: string;
   agreedToMission: boolean;
   depositCompleted: boolean;
+  interviewResponses?: string[];
 }
 
 /**
@@ -82,12 +83,13 @@ export default function OnboardingFlow({ referrerName, onComplete }: OnboardingF
             <InterviewStep
               key="interview"
               username={username}
-              onComplete={() => {
+              onComplete={(interviewResponses) => {
                 onComplete({
                   username,
                   walletAddress: address || '',
                   agreedToMission: true,
                   depositCompleted: true,
+                  interviewResponses,
                 });
               }}
             />
@@ -460,7 +462,7 @@ function DepositStep({
 /**
  * Step 5: Skills Interview
  */
-function InterviewStep({ username, onComplete }: { username: string; onComplete: () => void }) {
+function InterviewStep({ username, onComplete }: { username: string; onComplete: (responses: string[]) => void }) {
   const [responses, setResponses] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [input, setInput] = useState('');
@@ -481,8 +483,8 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      // Interview complete
-      onComplete();
+      // Interview complete - pass responses to parent
+      onComplete(newResponses);
     }
   };
 
