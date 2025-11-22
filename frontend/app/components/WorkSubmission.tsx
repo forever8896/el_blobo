@@ -54,14 +54,14 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/90 z-40 flex items-center justify-center p-4">
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="w-full max-w-3xl bg-gradient-to-br from-purple-900/40 via-black to-indigo-900/40 border-2 border-[var(--neon-magenta)] p-8"
+        className="w-full max-w-3xl bg-blob-violet border-2 border-blob-cobalt p-8 shadow-[8px_8px_0px_#1E4CDD]"
       >
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 border-b-2 border-blob-cobalt pb-6">
           <motion.div
             className="text-6xl mb-4"
             animate={{ rotate: [0, 10, -10, 0] }}
@@ -69,34 +69,34 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
           >
             📤
           </motion.div>
-          <h2 className="text-3xl font-black text-[var(--neon-magenta)] mb-2 neon-glow">
+          <h2 className="text-3xl font-black text-white mb-2 font-display">
             SUBMIT YOUR WORK
           </h2>
-          <p className="text-[var(--text-dim)] font-mono text-sm">
+          <p className="text-blob-peach font-mono text-sm">
             &gt; The AI Council will evaluate your submission
           </p>
         </div>
 
         {/* Project Details */}
-        <div className="bg-black/60 border-2 border-[var(--neon-cyan)] p-6 mb-6">
+        <div className="bg-black border-2 border-blob-cobalt p-6 mb-6">
           <div className="space-y-3 font-mono">
             <div>
-              <span className="text-[var(--text-dim)] text-sm">&gt; PROJECT:</span>
-              <p className="text-lg text-[var(--neon-cyan)] font-bold">{project.title}</p>
+              <span className="text-blob-peach text-sm">&gt; PROJECT:</span>
+              <p className="text-lg text-blob-mint font-bold">{project.title}</p>
             </div>
             <div>
-              <span className="text-[var(--text-dim)] text-sm">&gt; DESCRIPTION:</span>
-              <p className="text-[var(--text-secondary)]">{project.description}</p>
+              <span className="text-blob-peach text-sm">&gt; DESCRIPTION:</span>
+              <p className="text-white">{project.description}</p>
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-[var(--neon-cyan)]/30">
+            <div className="flex justify-between items-center pt-3 border-t border-blob-cobalt">
               <div>
-                <span className="text-[var(--text-dim)] text-sm">&gt; PAYMENT:</span>
-                <p className="text-xl text-green-400 font-bold">${project.price_estimate}</p>
+                <span className="text-blob-peach text-sm">&gt; PAYMENT:</span>
+                <p className="text-xl text-blob-green font-bold">${project.price_estimate}</p>
               </div>
               <div className="text-right">
-                <span className="text-[var(--text-dim)] text-sm">&gt; TIME LEFT:</span>
+                <span className="text-blob-peach text-sm">&gt; TIME LEFT:</span>
                 <p className={`text-xl font-bold ${
-                  timeRemaining() === 'EXPIRED' ? 'text-red-400' : 'text-[var(--neon-yellow)]'
+                  timeRemaining() === 'EXPIRED' ? 'text-red-400' : 'text-blob-orange'
                 }`}>
                   {timeRemaining()}
                 </p>
@@ -109,7 +109,7 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
         <div className="space-y-6">
           {/* URL Input */}
           <div>
-            <label className="text-sm text-[var(--text-dim)] font-mono mb-2 block">
+            <label className="text-sm text-blob-mint font-mono mb-2 block font-bold">
               &gt; SUBMISSION URL (Required) *
             </label>
             <input
@@ -117,23 +117,23 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
               value={submissionUrl}
               onChange={(e) => setSubmissionUrl(e.target.value)}
               placeholder="https://github.com/yourwork or https://drive.google.com/..."
-              className="w-full px-4 py-3 bg-black/60 border-2 border-[var(--neon-magenta)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-[var(--neon-cyan)] transition-colors"
+              className="w-full px-4 py-3 bg-black border-2 border-blob-cobalt text-white font-mono focus:outline-none focus:border-blob-mint focus:shadow-[4px_4px_0px_#4FFFB0] transition-all"
             />
-            <p className="text-xs text-[var(--text-dim)] mt-1">
+            <p className="text-xs text-blob-peach mt-1 font-mono">
               * Provide a link to your work (GitHub, Drive, Figma, deployed site, etc.)
             </p>
           </div>
 
           {/* Notes Textarea */}
           <div>
-            <label className="text-sm text-[var(--text-dim)] font-mono mb-2 block">
+            <label className="text-sm text-blob-mint font-mono mb-2 block font-bold">
               &gt; ADDITIONAL NOTES (Optional)
             </label>
             <textarea
               value={submissionNotes}
               onChange={(e) => setSubmissionNotes(e.target.value)}
               placeholder="Explain your approach, challenges faced, or any additional context..."
-              className="w-full px-4 py-3 bg-black/60 border-2 border-[var(--neon-magenta)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-[var(--neon-cyan)] transition-colors resize-none h-32"
+              className="w-full px-4 py-3 bg-black border-2 border-blob-cobalt text-white font-mono focus:outline-none focus:border-blob-mint focus:shadow-[4px_4px_0px_#4FFFB0] transition-all resize-none h-32"
             />
           </div>
 
@@ -141,9 +141,9 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[var(--neon-yellow)]/10 border-l-4 border-[var(--neon-yellow)] p-4"
+            className="bg-blob-orange/10 border-l-4 border-blob-orange p-4"
           >
-            <p className="text-sm text-[var(--neon-yellow)] font-mono">
+            <p className="text-sm text-blob-orange font-mono font-bold">
               ⚠️ WARNING: Your work will be evaluated by 3 independent AI judges.
               <br />
               They will check quality, effort, and alignment with requirements.
@@ -157,17 +157,17 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
             <button
               onClick={onCancel}
               disabled={isSubmitting}
-              className="px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white font-mono font-bold transition-colors disabled:opacity-50"
+              className="px-8 py-3 border-2 border-gray-600 text-gray-400 hover:text-white hover:border-white font-mono font-bold transition-colors disabled:opacity-50"
             >
               [CANCEL]
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !submissionUrl.trim()}
-              className={`px-8 py-3 font-mono font-bold transition-all ${
+              className={`px-8 py-3 font-mono font-bold transition-all border-2 ${
                 isSubmitting || !submissionUrl.trim()
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  : 'bg-transparent border-2 border-[var(--neon-magenta)] text-[var(--neon-magenta)] hover:bg-[var(--neon-magenta)] hover:text-black neon-glow-box'
+                  ? 'bg-gray-800 border-gray-600 text-gray-500 cursor-not-allowed'
+                  : 'bg-blob-cobalt border-blob-mint text-white hover:shadow-[4px_4px_0px_#4FFFB0] hover:-translate-y-1'
               }`}
             >
               {isSubmitting ? '[SUBMITTING...]' : '[SUBMIT FOR REVIEW]'}

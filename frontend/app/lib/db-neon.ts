@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * NeonDB Database Client
  *
@@ -7,7 +8,7 @@
  * Uses pg library for local development and @vercel/postgres for production.
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 // Create a connection pool
 const pool = new Pool({
@@ -21,7 +22,7 @@ const pool = new Pool({
 });
 
 // Helper to execute SQL queries
-async function query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+async function query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
   const client = await pool.connect();
   try {
     const result = await client.query<T>(text, params);
@@ -32,7 +33,7 @@ async function query<T = any>(text: string, params?: any[]): Promise<QueryResult
 }
 
 // Template literal tag function for SQL queries (similar to @vercel/postgres syntax)
-function sql<T = any>(strings: TemplateStringsArray, ...values: any[]): Promise<QueryResult<T>> {
+function sql<T extends QueryResultRow = any>(strings: TemplateStringsArray, ...values: any[]): Promise<QueryResult<T>> {
   // Build the parameterized query
   let text = '';
   const params: any[] = [];

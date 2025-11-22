@@ -10,7 +10,27 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["DM Sans", "sans-serif"],
+        mono: ["IBM Plex Mono", "monospace"],
+        display: ["Syne", "sans-serif"],
       },
+      colors: {
+        blob: {
+          cobalt: "#1E4CDD",
+          mint: "#4FFFB0",
+          peach: "#FFDAB9",
+          violet: "#240B4D",
+          orange: "#FF9F1C",
+          green: "#2ECC71",
+        },
+        ronin: {
+          blue: "#1E4CDD",
+          mint: "#4FFFB0",
+          peach: "#FFDAB9",
+          violet: "#240B4D",
+          orange: "#FF9F1C",
+          green: "#2ECC71",
+        }
+      }
     },
   },
   plugins: [],

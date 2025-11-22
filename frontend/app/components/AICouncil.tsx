@@ -156,22 +156,22 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-6xl bg-gradient-to-br from-purple-900/40 via-black to-indigo-900/40 border-2 border-[var(--neon-cyan)] p-8 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-6xl bg-blob-violet border-2 border-blob-cobalt p-8 max-h-[90vh] overflow-y-auto shadow-[8px_8px_0px_#1E4CDD]"
       >
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 border-b-2 border-blob-cobalt pb-6">
           <motion.h1
-            className="text-4xl font-black text-[var(--neon-cyan)] mb-2 neon-glow"
+            className="text-4xl font-black text-white mb-2 font-display"
             animate={{ opacity: [1, 0.7, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
             █▓▒░ AI COUNCIL EVALUATION ░▒▓█
           </motion.h1>
-          <p className="text-[var(--text-dim)] font-mono text-sm">
+          <p className="text-blob-peach font-mono text-sm">
             &gt; 3 INDEPENDENT AI JUDGES | MAJORITY VOTE REQUIRED
           </p>
         </div>
@@ -186,12 +186,12 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
               transition={{ delay: index * 0.2 }}
               className={`border-2 p-4 ${
                 judge.status === 'thinking'
-                  ? 'border-[var(--neon-yellow)] bg-[var(--neon-yellow)]/10'
+                  ? 'border-blob-orange bg-blob-orange/10'
                   : judge.status === 'voted'
                   ? judge.vote
-                    ? 'border-green-500 bg-green-500/10'
+                    ? 'border-blob-green bg-blob-green/10'
                     : 'border-red-500 bg-red-500/10'
-                  : 'border-[var(--neon-cyan)]/30 bg-black/40'
+                  : 'border-blob-cobalt/30 bg-black'
               }`}
             >
               <div className="flex items-center gap-3 mb-2">
@@ -214,11 +214,11 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
                   {judge.avatar}
                 </motion.span>
                 <div className="flex-1">
-                  <h3 className="font-mono font-bold text-[var(--neon-cyan)]">
+                  <h3 className="font-mono font-bold text-white">
                     {judge.name}
                   </h3>
-                  <p className="text-xs text-[var(--text-dim)]">{judge.personality}</p>
-                  <p className="text-xs text-[var(--neon-magenta)] mt-1">
+                  <p className="text-xs text-blob-peach">{judge.personality}</p>
+                  <p className="text-xs text-blob-mint mt-1 font-bold">
                     AI: {judge.aiProvider}
                   </p>
                 </div>
@@ -227,11 +227,11 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
               {/* Status */}
               <div className="mt-3 font-mono text-sm">
                 {judge.status === 'waiting' && (
-                  <span className="text-[var(--text-dim)]">WAITING...</span>
+                  <span className="text-gray-500">WAITING...</span>
                 )}
                 {judge.status === 'thinking' && (
                   <motion.span
-                    className="text-[var(--neon-yellow)]"
+                    className="text-blob-orange font-bold"
                     animate={{ opacity: [1, 0.5, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
                   >
@@ -245,7 +245,7 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
                     transition={{ type: "spring", stiffness: 200 }}
                   >
                     <motion.div
-                      className={`text-3xl font-bold mb-2 ${judge.vote ? 'text-green-400' : 'text-red-400'}`}
+                      className={`text-3xl font-bold mb-2 ${judge.vote ? 'text-blob-green' : 'text-red-500'}`}
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 0.5 }}
                     >
@@ -256,11 +256,11 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="relative bg-black/60 border-2 border-[var(--neon-cyan)] p-3 rounded-lg mt-2"
+                      className="relative bg-black border-2 border-blob-cobalt p-3 mt-2"
                     >
                       {/* Speech bubble arrow */}
-                      <div className="absolute -top-2 left-6 w-4 h-4 bg-black/60 border-l-2 border-t-2 border-[var(--neon-cyan)] transform rotate-45"></div>
-                      <p className="text-xs text-[var(--text-secondary)]">
+                      <div className="absolute -top-2 left-6 w-4 h-4 bg-black border-l-2 border-t-2 border-blob-cobalt transform rotate-45"></div>
+                      <p className="text-xs text-white">
                         <TypewriterText text={judge.reasoning || ""} speed={20} />
                       </p>
                     </motion.div>
@@ -272,8 +272,8 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
         </div>
 
         {/* Council Discussion Log */}
-        <div className="bg-black/60 border-2 border-[var(--neon-cyan)] p-6 font-mono text-sm">
-          <div className="flex items-center gap-2 mb-4 text-[var(--neon-cyan)]">
+        <div className="bg-black border-2 border-blob-cobalt p-6 font-mono text-sm shadow-[4px_4px_0px_#1E4CDD]">
+          <div className="flex items-center gap-2 mb-4 text-blob-mint">
             <motion.span
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -283,7 +283,7 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
             <span className="font-bold">LIVE COUNCIL DISCUSSION</span>
           </div>
 
-          <div className="space-y-3 text-[var(--text-secondary)] max-h-64 overflow-y-auto">
+          <div className="space-y-3 text-white max-h-64 overflow-y-auto">
             {councilDiscussion.map((line, i) => {
               const isJudgeComment = line.includes('VALIDATOR-PRIME') || line.includes('IMPACT-SAGE') || line.includes('CHAOS-ARBITER');
               const isDecision = line.includes('DECISION:');
@@ -297,12 +297,12 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   transition={{ delay: i * 0.15, type: "spring" }}
                   className={`
-                    ${isJudgeComment ? 'font-bold text-[var(--neon-cyan)]' : ''}
-                    ${isDecision ? 'text-[var(--neon-yellow)] font-bold text-lg border-t-2 border-[var(--neon-cyan)] pt-2 mt-2' : ''}
-                    ${isApprove ? 'text-green-400' : ''}
-                    ${isReject ? 'text-red-400' : ''}
-                    ${line.startsWith('>') ? 'text-[var(--text-dim)]' : ''}
-                    ${line.startsWith('"') ? 'italic pl-4 border-l-2 border-[var(--neon-magenta)] ml-2' : ''}
+                    ${isJudgeComment ? 'font-bold text-blob-mint' : ''}
+                    ${isDecision ? 'text-blob-orange font-bold text-lg border-t-2 border-blob-cobalt pt-2 mt-2' : ''}
+                    ${isApprove ? 'text-blob-green' : ''}
+                    ${isReject ? 'text-red-500' : ''}
+                    ${line.startsWith('>') ? 'text-blob-peach' : ''}
+                    ${line.startsWith('"') ? 'italic pl-4 border-l-2 border-blob-cobalt ml-2' : ''}
                   `}
                 >
                   {line}
@@ -313,7 +313,7 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-[var(--neon-yellow)]"
+                className="flex items-center gap-2 text-blob-orange"
               >
                 <motion.span
                   animate={{ opacity: [1, 0.3, 1] }}
@@ -334,21 +334,21 @@ export default function AICouncil({ projectId, submissionUrl, submissionNotes, o
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0 }}
-              className={`mt-6 p-6 border-4 text-center ${
+              className={`mt-6 p-6 border-4 text-center shadow-[8px_8px_0px_rgba(0,0,0,0.5)] ${
                 finalDecision === 'approved'
-                  ? 'border-green-500 bg-green-500/20'
+                  ? 'border-blob-green bg-blob-green/20'
                   : 'border-red-500 bg-red-500/20'
               }`}
             >
               <div className={`text-6xl mb-2 ${
-                finalDecision === 'approved' ? 'text-green-400' : 'text-red-400'
+                finalDecision === 'approved' ? 'text-blob-green' : 'text-red-500'
               }`}>
                 {finalDecision === 'approved' ? '✅' : '❌'}
               </div>
-              <h2 className="text-3xl font-black mb-2">
+              <h2 className="text-3xl font-black mb-2 text-white font-display">
                 {finalDecision === 'approved' ? 'WORK APPROVED' : 'WORK REJECTED'}
               </h2>
-              <p className="text-[var(--text-dim)] font-mono">
+              <p className="text-white font-mono font-bold">
                 {finalDecision === 'approved'
                   ? '> Payment distribution initiated...'
                   : '> Quality standards not met. Try again.'}

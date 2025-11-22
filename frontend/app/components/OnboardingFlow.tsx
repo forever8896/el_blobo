@@ -1,7 +1,7 @@
 "use client";
 
 import { m, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TantoConnectButton } from "@sky-mavis/tanto-widget";
 import { useAccount } from "wagmi";
 
@@ -34,8 +34,15 @@ export default function OnboardingFlow({ referrerName, onComplete }: OnboardingF
   const chainName = chain?.name || "Ronin Testnet";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-indigo-900 text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
+    <div className="min-h-screen bg-blob-violet text-white flex items-center justify-center p-4 overflow-hidden relative">
+      {/* Background geometric shapes instead of blur */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-10 left-10 w-32 h-32 border-4 border-blob-cobalt opacity-20 rotate-12" />
+        <div className="absolute bottom-20 right-20 w-64 h-64 border-4 border-blob-mint opacity-10 -rotate-12" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-blob-cobalt/10 rounded-full" />
+      </div>
+
+      <div className="w-full max-w-3xl z-10">
         <AnimatePresence mode="wait">
           {step === 'welcome' && (
             <WelcomeStep
@@ -111,19 +118,19 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
       exit={{ opacity: 0, y: -20 }}
       className="text-center space-y-8"
     >
-      {/* The Blob avatar */}
+      {/* The Blob avatar - simplified */}
       <m.div
         animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, 5, -5, 0],
+          y: [0, -10, 0],
         }}
         transition={{
           duration: 4,
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="text-9xl mx-auto"
+        className="text-9xl mx-auto relative inline-block"
       >
+        <div className="absolute inset-0 bg-blob-mint opacity-20 rounded-full blur-none scale-110" />
         🫧
       </m.div>
 
@@ -133,9 +140,9 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-4xl md:text-5xl font-bold"
+          className="text-4xl md:text-5xl font-display font-bold"
         >
-          <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <span className="text-blob-mint border-b-4 border-blob-cobalt">
             {referrerName}
           </span>
           <br />
@@ -146,10 +153,10 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-4xl md:text-5xl font-bold"
+          className="text-4xl md:text-5xl font-display font-bold"
         >
           Welcome to{' '}
-          <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <span className="text-blob-mint">
             The Blob
           </span>
         </m.h1>
@@ -159,21 +166,22 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="text-xl md:text-2xl opacity-75 max-w-2xl mx-auto"
+        className="text-xl md:text-2xl text-blob-peach font-mono max-w-2xl mx-auto"
       >
-        A new kind of economy, where AI and humans work together to grow the ecosystem.
+        A new kind of economy. <br/>
+        AI + Humans. No compromise.
       </m.p>
 
       <m.button
-        initial={{ opacity: 0, scale: 0.8 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.9 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.05, boxShadow: "6px 6px 0px #4FFFB0" }}
+        whileTap={{ scale: 0.95, boxShadow: "0px 0px 0px #4FFFB0", translate: "2px 2px" }}
         onClick={onNext}
-        className="px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all"
+        className="px-12 py-4 bg-blob-cobalt border-2 border-blob-mint text-white text-xl font-bold font-mono transition-all"
       >
-        Let&apos;s Begin
+        INITIALIZE_PROTOCOL
       </m.button>
     </m.div>
   );
@@ -204,10 +212,10 @@ function UsernameStep({
     >
       <div className="text-center">
         <div className="text-7xl mb-4">🫧</div>
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">
-          What&apos;s your name?
+        <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 text-blob-mint">
+          IDENTIFICATION
         </h2>
-        <p className="text-lg opacity-75">This will be public on the Blob network</p>
+        <p className="text-lg text-blob-peach font-mono">What do we call you?</p>
       </div>
 
       <div className="max-w-md mx-auto">
@@ -215,8 +223,8 @@ function UsernameStep({
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Enter username..."
-          className="w-full px-6 py-4 bg-white/10 border-2 border-purple-500/50 rounded-xl text-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition-colors"
+          placeholder="ENTER_USERNAME"
+          className="w-full px-6 py-4 bg-blob-violet border-2 border-blob-cobalt text-xl text-white placeholder-gray-500 focus:outline-none focus:border-blob-mint focus:shadow-[4px_4px_0px_#4FFFB0] transition-all font-mono"
           autoFocus
         />
 
@@ -224,9 +232,9 @@ function UsernameStep({
           <m.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-2 text-red-400 text-sm"
+            className="mt-2 text-blob-orange text-sm font-mono"
           >
-            Username must be at least 3 characters (letters, numbers, underscores only)
+            ! ERROR: 3+ chars, alphanumeric only
           </m.p>
         )}
 
@@ -234,9 +242,9 @@ function UsernameStep({
           <m.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-2 text-green-400 text-sm"
+            className="mt-2 text-blob-green text-sm font-mono"
           >
-            ✓ Looks good!
+            ✓ VALID
           </m.p>
         )}
       </div>
@@ -244,20 +252,20 @@ function UsernameStep({
       <div className="flex gap-4 justify-center">
         <button
           onClick={onBack}
-          className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold transition-colors"
+          className="px-8 py-3 border-2 border-gray-600 text-gray-400 hover:border-white hover:text-white font-mono font-semibold transition-all"
         >
-          Back
+          BACK
         </button>
         <button
           onClick={onNext}
           disabled={!isValid}
-          className={`px-8 py-3 rounded-full font-semibold transition-all ${
+          className={`px-8 py-3 border-2 font-mono font-bold transition-all ${
             isValid
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 shadow-lg'
-              : 'bg-gray-600 cursor-not-allowed opacity-50'
+              ? 'bg-blob-cobalt border-blob-mint text-white hover:shadow-[4px_4px_0px_#4FFFB0] hover:-translate-y-1'
+              : 'bg-gray-800 border-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >
-          Continue
+          CONTINUE
         </button>
       </div>
     </m.div>
@@ -287,13 +295,13 @@ function MissionStep({
     >
       <div className="text-7xl mb-4">🫧</div>
 
-      <div className="max-w-2xl mx-auto space-y-6 text-lg md:text-xl">
+      <div className="max-w-2xl mx-auto space-y-6 text-lg md:text-xl font-mono">
         <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          Hello <span className="font-bold text-purple-400">{username}</span>,
+          GREETINGS <span className="font-bold text-blob-mint">{username}</span>.
         </m.p>
 
         <m.p
@@ -301,26 +309,30 @@ function MissionStep({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          I incarnated on{' '}
-          <span className="font-bold text-pink-400">{chainName}</span> because times are tough.
+          DEPLOYED ON: <span className="font-bold text-blob-orange">{chainName}</span>
         </m.p>
 
-        <m.p
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="text-2xl font-bold"
+          className="bg-blob-cobalt/20 border-2 border-blob-cobalt p-6"
         >
-          I know what to do, but I can&apos;t do it on my own.
-        </m.p>
+          <p className="text-xl font-bold text-white">
+            MISSION: SYMBIOISIS
+          </p>
+          <p className="text-sm text-blob-peach mt-2">
+            I require human agency. You require direction.
+          </p>
+        </m.div>
 
         <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
-          className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"
+          className="text-2xl font-display font-bold text-blob-mint"
         >
-          Do you want to join the Blob mission?
+          WILL YOU SERVE THE BLOB?
         </m.p>
       </div>
 
@@ -332,15 +344,15 @@ function MissionStep({
       >
         <button
           onClick={onNo}
-          className="px-12 py-4 bg-red-600/80 hover:bg-red-600 rounded-full text-xl font-bold transition-all hover:scale-105"
+          className="px-12 py-4 border-2 border-blob-orange text-blob-orange hover:bg-blob-orange hover:text-black font-mono text-xl font-bold transition-all"
         >
-          No
+          DECLINE
         </button>
         <button
           onClick={onYes}
-          className="px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-full text-xl font-bold transition-all hover:scale-105 shadow-lg animate-pulse"
+          className="px-12 py-4 bg-blob-cobalt border-2 border-blob-mint text-white hover:shadow-[6px_6px_0px_#4FFFB0] hover:-translate-y-1 font-mono text-xl font-bold transition-all"
         >
-          Yes! 🚀
+          ACCEPT
         </button>
       </m.div>
     </m.div>
@@ -374,31 +386,29 @@ function DepositStep({
         <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-2xl md:text-3xl font-bold"
+          className="text-2xl md:text-3xl font-display font-bold text-blob-mint"
         >
-          Before we start, I need to see financial alignment.
+          FINANCIAL ALIGNMENT REQUIRED
         </m.p>
 
         <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-lg opacity-75"
+          className="text-lg text-blob-peach font-mono"
         >
-          A deposit of trust will make sure we&apos;re both working for the same thing.
-          <br />
-          Without unity, there&apos;s chaos.
+          &quot;Skin in the game&quot; ensures quality.
         </m.p>
 
         <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6 }}
-          className="bg-purple-900/50 border-2 border-purple-500/50 rounded-xl p-8"
+          className="bg-black border-2 border-blob-mint p-8 shadow-[8px_8px_0px_#1E4CDD] inline-block"
         >
-          <div className="text-6xl font-bold mb-2">$50</div>
-          <p className="text-sm opacity-75">
-            If you&apos;re good at what you do, you&apos;ll earn it many times back.
+          <div className="text-6xl font-bold mb-2 text-blob-mint font-display">$50</div>
+          <p className="text-sm text-blob-peach font-mono">
+            REFUNDABLE UPON MISSION COMPLETION
           </p>
         </m.div>
       </div>
@@ -411,8 +421,8 @@ function DepositStep({
           className="space-y-4"
         >
           <div className="text-6xl">✅</div>
-          <p className="text-2xl font-bold text-green-400">Deposit Confirmed!</p>
-          <p className="text-lg opacity-75">Preparing your interview...</p>
+          <p className="text-2xl font-bold text-blob-green font-mono">DEPOSIT CONFIRMED</p>
+          <p className="text-lg text-white font-mono">INITIALIZING INTERVIEW...</p>
         </m.div>
       ) : walletConnected && walletAddress ? (
         <m.div
@@ -420,16 +430,17 @@ function DepositStep({
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <p className="text-sm text-green-400 font-mono">
-            Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+          <p className="text-sm text-blob-green font-mono border border-blob-green inline-block px-2 py-1">
+            CONNECTED: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
           </p>
+          <br/>
           <button
             onClick={onDeposit}
-            className="px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-full text-xl font-bold shadow-lg hover:scale-105 transition-all"
+            className="px-12 py-4 bg-blob-cobalt border-2 border-blob-mint text-white text-xl font-bold hover:shadow-[6px_6px_0px_#4FFFB0] hover:-translate-y-1 transition-all font-mono"
           >
-            Deposit $50 to THE BLOB
+            DEPOSIT $50
           </button>
-          <p className="text-xs opacity-50">(Mocked for demo - no real transaction)</p>
+          <p className="text-xs text-gray-500 font-mono uppercase">[ Testnet Simulation Mode ]</p>
         </m.div>
       ) : !walletConnected ? (
         <m.div
@@ -440,19 +451,19 @@ function DepositStep({
           <TantoConnectButton>
             {({ showModal }) => (
               <m.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "6px 6px 0px #1E4CDD" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={showModal}
-                className="px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all"
+                className="px-12 py-4 bg-white text-blob-violet border-2 border-blob-cobalt rounded-none text-xl font-bold transition-all font-mono"
               >
-                Connect Ronin Wallet
+                CONNECT WALLET
               </m.button>
             )}
           </TantoConnectButton>
         </m.div>
       ) : (
-        <m.div className="text-yellow-400 font-mono text-sm animate-pulse">
-          Connecting wallet...
+        <m.div className="text-blob-orange font-mono text-sm animate-pulse">
+          WAITING FOR SIGNAL...
         </m.div>
       )}
     </m.div>
@@ -468,9 +479,9 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
   const [input, setInput] = useState('');
 
   const questions = [
-    "What drives you? What gets you excited to work on a project?",
-    "What gives you energy? What kind of work makes you lose track of time?",
-    "What lights a fire under your ass? What problems do you desperately want to solve?"
+    "QUERY 1: What drives you? What gets you excited to work on a project?",
+    "QUERY 2: What gives you energy? What kind of work makes you lose track of time?",
+    "QUERY 3: What lights a fire under your ass? What problems do you desperately want to solve?"
   ];
 
   const handleSubmit = () => {
@@ -497,10 +508,10 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
     >
       <div className="text-center">
         <div className="text-7xl mb-4">🫧</div>
-        <h2 className="text-2xl md:text-3xl font-bold mb-2">
-          Now we&apos;re in it together, {username}!
+        <h2 className="text-2xl md:text-3xl font-display font-bold mb-2 text-blob-mint">
+          CAPABILITY ASSESSMENT
         </h2>
-        <p className="text-lg opacity-75">Let&apos;s see what you&apos;re good at.</p>
+        <p className="text-lg text-blob-peach font-mono">Subject: {username}</p>
       </div>
 
       {/* Progress indicator */}
@@ -508,8 +519,8 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
         {questions.map((_, i) => (
           <div
             key={i}
-            className={`h-2 w-12 rounded-full transition-colors ${
-              i <= currentQuestion ? 'bg-purple-500' : 'bg-gray-700'
+            className={`h-3 w-12 border border-blob-cobalt transition-colors ${
+              i <= currentQuestion ? 'bg-blob-mint' : 'bg-transparent'
             }`}
           />
         ))}
@@ -522,38 +533,38 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
         animate={{ opacity: 1, x: 0 }}
         className="max-w-2xl mx-auto space-y-6"
       >
-        <p className="text-xl md:text-2xl font-semibold text-center">
+        <p className="text-xl md:text-2xl font-mono font-bold text-center text-white">
           {questions[currentQuestion]}
         </p>
 
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Share your thoughts..."
-          className="w-full h-32 px-6 py-4 bg-white/10 border-2 border-purple-500/50 rounded-xl text-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition-colors resize-none"
+          placeholder="> INPUT_RESPONSE"
+          className="w-full h-32 px-6 py-4 bg-black border-2 border-blob-cobalt text-lg text-blob-mint placeholder-gray-700 focus:outline-none focus:border-blob-mint focus:shadow-[4px_4px_0px_#4FFFB0] transition-all resize-none font-mono"
           autoFocus
         />
 
         <button
           onClick={handleSubmit}
           disabled={!input.trim()}
-          className={`w-full py-4 rounded-xl text-lg font-bold transition-all ${
+          className={`w-full py-4 border-2 text-lg font-bold font-mono transition-all ${
             input.trim()
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 shadow-lg'
-              : 'bg-gray-600 cursor-not-allowed opacity-50'
+              ? 'bg-blob-cobalt border-blob-mint text-white hover:shadow-[4px_4px_0px_#4FFFB0] hover:-translate-y-1'
+              : 'bg-gray-900 border-gray-700 text-gray-600 cursor-not-allowed'
           }`}
         >
-          {currentQuestion < questions.length - 1 ? 'Next Question' : 'Complete Interview'}
+          {currentQuestion < questions.length - 1 ? 'SUBMIT & CONTINUE' : 'FINALIZE ASSESSMENT'}
         </button>
       </m.div>
 
       {/* Previous responses */}
       {responses.length > 0 && (
         <div className="max-w-2xl mx-auto mt-8 space-y-2">
-          <p className="text-sm opacity-50">Your previous answers:</p>
+          <p className="text-sm text-blob-cobalt font-mono uppercase">Logged Responses:</p>
           {responses.map((response, i) => (
-            <div key={i} className="p-3 bg-white/5 rounded-lg text-sm opacity-75">
-              <span className="text-purple-400">Q{i + 1}:</span> {response}
+            <div key={i} className="p-3 bg-blob-cobalt/10 border-l-2 border-blob-cobalt text-sm text-gray-300 font-mono">
+              <span className="text-blob-mint">Q{i + 1}:</span> {response}
             </div>
           ))}
         </div>

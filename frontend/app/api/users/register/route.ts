@@ -88,7 +88,7 @@ export async function POST(
       user: {
         id: newUser.id,
         wallet_address: newUser.wallet_address,
-        username: newUser.username,
+        username: newUser.username || username,
         skills: newUser.skills,
       },
       message: 'User registered successfully',
