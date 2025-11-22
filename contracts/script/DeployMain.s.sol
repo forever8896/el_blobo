@@ -8,6 +8,7 @@ import { ProjectRegistry } from "../src/ProjectRegistry.sol";
 import { RewardVault } from "../src/RewardVault.sol";
 import { IRewardVault } from "../src/IRewardVault.sol";
 import { Main } from "../src/Main.sol";
+import { Users } from "../src/Users.sol";
 
 contract DeployMain is Script {
     function run() external {
@@ -27,10 +28,9 @@ contract DeployMain is Script {
         // ---------------------------------------------------------------------
         // 1. Deploy ProjectRegistry
         // ---------------------------------------------------------------------
-        // If ProjectRegistry has different constructor args, adjust here.
         ProjectRegistry registry = new ProjectRegistry(registryOwner);
 
-        // Optional sanity check
+        // Optional sanity check: registryOwner should usually be the deployer
         require(registryOwner == deployer, "REGISTRY_OWNER != DEPLOYER_ADDRESS");
 
         // ---------------------------------------------------------------------
@@ -45,21 +45,33 @@ contract DeployMain is Script {
         );
 
         // ---------------------------------------------------------------------
-        // 3. Deploy Main
+        // 3. Deploy Users registry
         // ---------------------------------------------------------------------
-        // Main constructor:
-        //   constructor(ProjectRegistry _projectRegistry, IRewardVault _vault)
-        //
-        // We cast the RewardVault to IRewardVault explicitly:
-        Main main = new Main(registry, IRewardVault(address(vault)));
+        Users users = new Users();
 
         // ---------------------------------------------------------------------
-        // 4. Log addresses to console
+        // 4. Deploy Main
+        // ---------------------------------------------------------------------
+        // Main constructor:
+        //   constructor(
+        //       ProjectRegistry _projectRegistry,
+        //       IRewardVault _vault,
+        //       Users _users
+        //   )
+        Main main = new Main(
+            registry,
+            IRewardVault(address(vault)),
+            users
+        );
+
+        // ---------------------------------------------------------------------
+        // 5. Log addresses to console
         // ---------------------------------------------------------------------
         console2.log("Deployer:          ", deployer);
         console2.log("USDC (underlying): ", usdc);
         console2.log("ProjectRegistry:   ", address(registry));
         console2.log("RewardVault:       ", address(vault));
+        console2.log("Users:             ", address(users));
         console2.log("Main:              ", address(main));
 
         vm.stopBroadcast();

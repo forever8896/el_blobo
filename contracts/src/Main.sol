@@ -5,10 +5,11 @@ import { ProjectRegistry } from "./ProjectRegistry.sol";
 import { ProjectData } from "./ProjectData.sol";
 import { CallConfirmation4of4 } from "./CallConfirmation4of4.sol";
 import { IRewardVault } from "./IRewardVault.sol";
+import { Users } from "./Users.sol";
 
 /// @title Main
 /// @notice Glue contract that holds references to the ProjectRegistry, a RewardVault,
-///         and per-project 4-of-4 multisigs (CallConfirmation4of4) retrieved via ProjectRegistry.
+///         the Users registry, and per-project 4-of-4 multisigs stored in ProjectRegistry.
 contract Main {
     /// @notice Project registry holding ProjectData + multisig instances
     ProjectRegistry public immutable projectRegistry;
@@ -16,13 +17,13 @@ contract Main {
     /// @notice Reward vault holding the funds / tokens
     IRewardVault public immutable vault;
 
-    /// @notice Owner (can create projects, register project multisigs, update prices)
+    /// @notice Users registry (tracks user contracts + sponsors)
+    Users public immutable users;
+
+    /// @notice Owner (can create projects, update prices, etc.)
     address public owner;
 
-    /// @notice Registered users
-    mapping(address => bool) private registeredUsers;
-
-    /// @notice Emitted when a user registers
+    /// @notice Emitted when a user registers via Main
     event UserRegistered(address indexed user);
 
     /// @notice Per-project recorded reward (in vault **share units**, not assets)
@@ -32,18 +33,25 @@ contract Main {
     mapping(address => bool) public projectFinalized;
 
     // ------------------------------------------------------------------------
-    // Constructor & modifiers
+    // Constructor & ownership
     // ------------------------------------------------------------------------
 
-    /// @notice Set registry and vault at deployment time
+    /// @notice Initialize Main with already-deployed registry, vault and users registry
     /// @param _projectRegistry Already-deployed ProjectRegistry
-    /// @param _vault           Already-deployed RewardVault (ERC4626-style or Native)
-    constructor(ProjectRegistry _projectRegistry, IRewardVault _vault) {
+    /// @param _vault           Already-deployed RewardVault (IRewardVault)
+    /// @param _users           Already-deployed Users registry
+    constructor(
+        ProjectRegistry _projectRegistry,
+        IRewardVault _vault,
+        Users _users
+    ) {
         require(address(_projectRegistry) != address(0), "registry = zero");
         require(address(_vault) != address(0), "vault = zero");
+        require(address(_users) != address(0), "users = zero");
 
         projectRegistry = _projectRegistry;
         vault = _vault;
+        users = _users;
         owner = msg.sender;
     }
 
@@ -79,46 +87,44 @@ contract Main {
     }
 
     // ------------------------------------------------------------------------
-    // Multisig registration (per project) via ProjectRegistry
+    // Registration (via Users registry)
     // ------------------------------------------------------------------------
 
-    /// @notice Register a multisig instance for a given project key in the registry
-    /// @dev Intended to be called by the owner after deploying a multisig
-    /// @param key The project key (same key used in ProjectRegistry)
-    /// @param ms  The CallConfirmation4of4 instance for this project
-    function registerProjectMultisig(address key, CallConfirmation4of4 ms)
-        public
-        onlyOwner
-    {
-        projectRegistry.setProjectMultisig(key, ms);
-    }
+    /// @notice Register a user in the Users registry, charging a fee based on vault price.
+    ///
+    /// @dev
+    /// - `userAddress` is explicit but must equal msg.sender (self-registration).
+    /// - Uses `vault.registrationPrice()` as a minimum fee.
+    /// - Actual registration & sponsor invariants are handled by `Users.register`.
+    ///
+    /// @param userAddress  Address of the user being registered
+    /// @param bigSponsor   Big sponsor address (or address(0) for none)
+    /// @param smallSponsor Small sponsor address (or address(0) for none)
+    function registerUser(
+        address userAddress,
+        address bigSponsor,
+        address smallSponsor
+    ) external payable {
+        require(userAddress != address(0), "user = zero");
+        require(userAddress == msg.sender, "can only self-register");
 
-    // ------------------------------------------------------------------------
-    // Registration
-    // ------------------------------------------------------------------------
-
-    /// @notice Register the caller as a user.
-    /// @dev Payable: use `vault.registrationPrice()` as a reference fee.
-    ///      This does NOT interact with the vault directly; funding the vault
-    ///      is done separately via RewardVault.deposit.
-    function registerUser() external payable {
-        require(!registeredUsers[msg.sender], "already registered");
-
+        // Enforce a minimum registration fee based on vault pricing
         uint256 price = vault.registrationPrice();
-        // Treat registrationPrice as a minimum fee in native units (assumes same decimals)
         require(msg.value >= price, "fee below registration price");
 
-        registeredUsers[msg.sender] = true;
-        emit UserRegistered(msg.sender);
+        // Delegate actual user creation & invariants to Users registry
+        users.register(bigSponsor, smallSponsor);
+
+        emit UserRegistered(userAddress);
 
         // Forward fee to owner (could also be left in contract if you prefer)
         (bool ok, ) = payable(owner).call{value: msg.value}("");
         require(ok, "fee transfer failed");
     }
 
-    /// @notice Check if a given address is registered
-    function isRegistered(address user) external view returns (bool) {
-        return registeredUsers[user];
+    /// @notice Check if a given address is registered (proxy to Users)
+    function isRegistered(address userAddr) external view returns (bool) {
+        return users.isUser(userAddr);
     }
 
     // ------------------------------------------------------------------------
@@ -127,9 +133,8 @@ contract Main {
 
     /// @notice Create a new ProjectData via the ProjectRegistry and wire its multisig
     /// @dev Only the Main owner can create projects (matches ProjectRegistry.onlyOwner).
-    ///      IMPORTANT: ProjectRegistry.owner must be this Main.owner, otherwise
-    ///      createProject/setProjectMultisig will revert.
-    /// @param key           Project key (used in both registry and Main mappings)
+    ///
+    /// @param key           Project key (used in registry)
     /// @param assignee      Project assignee
     /// @param beginDeadline Start of 100% payment window
     /// @param endDeadline   End of window (0% after this)
