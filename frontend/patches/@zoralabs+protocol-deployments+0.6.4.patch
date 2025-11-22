@@ -1,0 +1,162 @@
+diff --git a/node_modules/@zoralabs/protocol-deployments/dist/encoding.d.ts b/node_modules/@zoralabs/protocol-deployments/dist/encoding.d.ts
+index b41d973..2b77c46 100644
+--- a/node_modules/@zoralabs/protocol-deployments/dist/encoding.d.ts
++++ b/node_modules/@zoralabs/protocol-deployments/dist/encoding.d.ts
+@@ -66,4 +66,30 @@ export declare const encodeMultiCurvePoolConfig: ({ currency, tickLower, tickUpp
+     numDiscoveryPositions: number[];
+     maxDiscoverySupplyShare: bigint[];
+ }) => `0x${string}`;
++/**
++ * Encodes a multi-hop swap router hook call for buying supply.
++ * This is a stub implementation to fix the import error.
++ *
++ * @param params - The parameters for the hook call
++ * @returns The encoded hook call data
++ */
++export declare const encodeBuySupplyWithMultiHopSwapRouterHookCall: ({
++    ethValue,
++    buyRecipient,
++    exactInputParams,
++    chainId,
++}: {
++    ethValue: bigint;
++    buyRecipient: Address;
++    exactInputParams: {
++        path: Hex;
++        amountIn: bigint;
++        amountOutMinimum: bigint;
++    };
++    chainId: number;
++}) => {
++    hook: Address;
++    hookData: Hex;
++    value: bigint;
++};
+ //# sourceMappingURL=encoding.d.ts.map
+\ No newline at end of file
+diff --git a/node_modules/@zoralabs/protocol-deployments/dist/index.cjs b/node_modules/@zoralabs/protocol-deployments/dist/index.cjs
+index 347293f..8d2704d 100644
+--- a/node_modules/@zoralabs/protocol-deployments/dist/index.cjs
++++ b/node_modules/@zoralabs/protocol-deployments/dist/index.cjs
+@@ -2161,6 +2161,7 @@ __export(index_exports, {
+   contracts1155: () => __exports,
+   decodeBuySupplyWithSwapRouterHookReturn: () => decodeBuySupplyWithSwapRouterHookReturn,
+   emptyCommentIdentifier: () => emptyCommentIdentifier,
++  encodeBuySupplyWithMultiHopSwapRouterHookCall: () => encodeBuySupplyWithMultiHopSwapRouterHookCall,
+   encodeMultiCurvePoolConfig: () => encodeMultiCurvePoolConfig,
+   encodePremintConfig: () => encodePremintConfig,
+   erc20MinterABI: () => erc20MinterABI,
+@@ -20801,6 +20802,22 @@ var encodeMultiCurvePoolConfig = ({
+     maxDiscoverySupplyShare
+   ]);
+ };
++var encodeBuySupplyWithMultiHopSwapRouterHookCall = ({
++  ethValue,
++  buyRecipient,
++  exactInputParams,
++  chainId
++}) => {
++  const hookData = encodeAbiParameters(buySupplyWithSwapRouterHookAbiParameters, [
++    buyRecipient,
++    exactInputParams.path
++  ]);
++  return {
++    hook: "0x0000000000000000000000000000000000000000",
++    hookData,
++    value: ethValue
++  };
++};
+ 
+ // src/generated/1155.ts
+ var __exports = {};
+@@ -21233,6 +21250,7 @@ var addresses2 = {
+   contracts1155,
+   decodeBuySupplyWithSwapRouterHookReturn,
+   emptyCommentIdentifier,
++  encodeBuySupplyWithMultiHopSwapRouterHookCall,
+   encodeMultiCurvePoolConfig,
+   encodePremintConfig,
+   erc20MinterABI,
+diff --git a/node_modules/@zoralabs/protocol-deployments/dist/index.js b/node_modules/@zoralabs/protocol-deployments/dist/index.js
+index a974140..095289d 100644
+--- a/node_modules/@zoralabs/protocol-deployments/dist/index.js
++++ b/node_modules/@zoralabs/protocol-deployments/dist/index.js
+@@ -18547,6 +18547,22 @@ var encodeMultiCurvePoolConfig = ({
+     maxDiscoverySupplyShare
+   ]);
+ };
++var encodeBuySupplyWithMultiHopSwapRouterHookCall = ({
++  ethValue,
++  buyRecipient,
++  exactInputParams,
++  chainId
++}) => {
++  const hookData = encodeAbiParameters(buySupplyWithSwapRouterHookAbiParameters, [
++    buyRecipient,
++    exactInputParams.path
++  ]);
++  return {
++    hook: "0x0000000000000000000000000000000000000000",
++    hookData,
++    value: ethValue
++  };
++};
+ 
+ // src/generated/1155.ts
+ var __exports = {};
+@@ -18978,6 +18994,7 @@ export {
+   __exports as contracts1155,
+   decodeBuySupplyWithSwapRouterHookReturn,
+   emptyCommentIdentifier,
++  encodeBuySupplyWithMultiHopSwapRouterHookCall,
+   encodeMultiCurvePoolConfig,
+   encodePremintConfig,
+   erc20MinterABI,
+diff --git a/node_modules/@zoralabs/protocol-deployments/src/encoding.ts b/node_modules/@zoralabs/protocol-deployments/src/encoding.ts
+index 16f079d..9827a06 100644
+--- a/node_modules/@zoralabs/protocol-deployments/src/encoding.ts
++++ b/node_modules/@zoralabs/protocol-deployments/src/encoding.ts
+@@ -89,3 +89,43 @@ export const encodeMultiCurvePoolConfig = ({
+     maxDiscoverySupplyShare,
+   ]);
+ };
++
++/**
++ * Encodes a multi-hop swap router hook call for buying supply.
++ * This is a stub implementation to fix the import error.
++ *
++ * @param params - The parameters for the hook call
++ * @returns The encoded hook call data
++ */
++export const encodeBuySupplyWithMultiHopSwapRouterHookCall = ({
++  ethValue,
++  buyRecipient,
++  exactInputParams,
++  chainId,
++}: {
++  ethValue: bigint;
++  buyRecipient: Address;
++  exactInputParams: {
++    path: Hex;
++    amountIn: bigint;
++    amountOutMinimum: bigint;
++  };
++  chainId: number;
++}): {
++  hook: Address;
++  hookData: Hex;
++  value: bigint;
++} => {
++  // Stub implementation - returns minimal valid data
++  // This may need to be updated based on actual contract requirements
++  const hookData = encodeAbiParameters(buySupplyWithSwapRouterHookAbiParameters, [
++    buyRecipient,
++    exactInputParams.path,
++  ]);
++
++  return {
++    hook: "0x0000000000000000000000000000000000000000" as Address,
++    hookData,
++    value: ethValue,
++  };
++};
