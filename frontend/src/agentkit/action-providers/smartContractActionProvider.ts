@@ -66,7 +66,7 @@ export interface SmartContractConfig {
  */
 export const ReadContractSchema = z.object({
   functionName: z.string().describe("The name of the contract function to call"),
-  args: z.array(z.any()).optional().describe("Array of arguments to pass to the function"),
+  args: z.array(z.union([z.string(), z.number(), z.boolean()])).optional().describe("Array of arguments to pass to the function"),
 }).describe("Call a read-only function on the smart contract");
 
 /**
@@ -74,7 +74,7 @@ export const ReadContractSchema = z.object({
  */
 export const WriteContractSchema = z.object({
   functionName: z.string().describe("The name of the contract function to call"),
-  args: z.array(z.any()).optional().describe("Array of arguments to pass to the function"),
+  args: z.array(z.union([z.string(), z.number(), z.boolean()])).optional().describe("Array of arguments to pass to the function"),
   value: z.string().optional().describe("Amount of ETH to send with the transaction (in ETH, e.g., '0.1')"),
   gasLimit: z.string().optional().describe("Optional gas limit override"),
 }).describe("Execute a state-changing function on the smart contract");

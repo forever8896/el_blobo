@@ -37,6 +37,12 @@ export async function POST(
     const { text } = await generateText({
       ...agent,
       messages,
+      // Enable experimental features for web and Twitter search
+      experimental_telemetry: {
+        isEnabled: true,
+      },
+      // Additional configuration for better tool use
+      maxToolRoundtrips: 5,
     });
 
     // 4. Add the agent's response to the messages

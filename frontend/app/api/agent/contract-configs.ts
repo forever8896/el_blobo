@@ -19,111 +19,111 @@ import type { SmartContractConfig } from "@/src/agentkit/action-providers";
  *
  * Uncomment and customize this example to add USDC interaction capabilities
  */
-// const USDC_BASE_SEPOLIA: SmartContractConfig = {
-//   contractAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as Address,
-//   abi: [
-//     {
-//       type: "function",
-//       name: "balanceOf",
-//       inputs: [{ type: "address", name: "account" }],
-//       outputs: [{ type: "uint256", name: "" }],
-//       stateMutability: "view",
-//     },
-//     {
-//       type: "function",
-//       name: "transfer",
-//       inputs: [
-//         { type: "address", name: "to" },
-//         { type: "uint256", name: "amount" },
-//       ],
-//       outputs: [{ type: "bool", name: "" }],
-//       stateMutability: "nonpayable",
-//     },
-//     {
-//       type: "function",
-//       name: "decimals",
-//       inputs: [],
-//       outputs: [{ type: "uint8", name: "" }],
-//       stateMutability: "view",
-//     },
-//   ] as const,
-//   supportedNetworks: ["base-sepolia"],
-//   contractDescription: "USDC Stablecoin on Base Sepolia Testnet",
-// };
+const USDC_BASE_SEPOLIA: SmartContractConfig = {
+  contractAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as Address,
+  abi: [
+    {
+      type: "function",
+      name: "balanceOf",
+      inputs: [{ type: "address", name: "account" }],
+      outputs: [{ type: "uint256", name: "" }],
+      stateMutability: "view",
+    },
+    {
+      type: "function",
+      name: "transfer",
+      inputs: [
+        { type: "address", name: "to" },
+        { type: "uint256", name: "amount" },
+      ],
+      outputs: [{ type: "bool", name: "" }],
+      stateMutability: "nonpayable",
+    },
+    {
+      type: "function",
+      name: "decimals",
+      inputs: [],
+      outputs: [{ type: "uint8", name: "" }],
+      stateMutability: "view",
+    },
+  ] as const,
+  supportedNetworks: ["base-sepolia"],
+  contractDescription: "USDC Stablecoin on Base Sepolia Testnet",
+};
 
 /**
  * Example: Custom NFT Contract
  *
  * Template for adding your own NFT contract
  */
-// const MY_NFT_CONTRACT: SmartContractConfig = {
-//   contractAddress: "0x0000000000000000000000000000000000000000" as Address,
-//   abi: [
-//     {
-//       type: "function",
-//       name: "mint",
-//       inputs: [
-//         { type: "address", name: "to" },
-//         { type: "uint256", name: "tokenId" },
-//       ],
-//       outputs: [],
-//       stateMutability: "nonpayable",
-//     },
-//     {
-//       type: "function",
-//       name: "ownerOf",
-//       inputs: [{ type: "uint256", name: "tokenId" }],
-//       outputs: [{ type: "address", name: "" }],
-//       stateMutability: "view",
-//     },
-//   ] as const,
-//   supportedNetworks: ["base-sepolia"],
-//   contractDescription: "My Custom NFT Collection",
-// };
+const MY_NFT_CONTRACT: SmartContractConfig = {
+  contractAddress: "0x0000000000000000000000000000000000000000" as Address,
+  abi: [
+    {
+      type: "function",
+      name: "mint",
+      inputs: [
+        { type: "address", name: "to" },
+        { type: "uint256", name: "tokenId" },
+      ],
+      outputs: [],
+      stateMutability: "nonpayable",
+    },
+    {
+      type: "function",
+      name: "ownerOf",
+      inputs: [{ type: "uint256", name: "tokenId" }],
+      outputs: [{ type: "address", name: "" }],
+      stateMutability: "view",
+    },
+  ] as const,
+  supportedNetworks: ["base-sepolia"],
+  contractDescription: "My Custom NFT Collection",
+};
 
 /**
  * Example: DAO Governance Contract
  *
  * Template for adding DAO voting capabilities
  */
-// const DAO_GOVERNANCE: SmartContractConfig = {
-//   contractAddress: "0x0000000000000000000000000000000000000000" as Address,
-//   abi: [
-//     {
-//       type: "function",
-//       name: "propose",
-//       inputs: [
-//         { type: "string", name: "description" },
-//         { type: "uint256", name: "votingPeriod" },
-//       ],
-//       outputs: [{ type: "uint256", name: "proposalId" }],
-//       stateMutability: "nonpayable",
-//     },
-//     {
-//       type: "function",
-//       name: "vote",
-//       inputs: [
-//         { type: "uint256", name: "proposalId" },
-//         { type: "bool", name: "support" },
-//       ],
-//       outputs: [],
-//       stateMutability: "nonpayable",
-//     },
-//     {
-//       type: "function",
-//       name: "getProposal",
-//       inputs: [{ type: "uint256", name: "proposalId" }],
-//       outputs: [
-//         { type: "string", name: "description" },
-//         { type: "uint256", name: "votesFor" },
-//         { type: "uint256", name: "votesAgainst" },
-//       ],
-//       stateMutability: "view",
-//     },
-//   ] as const,
-//   supportedNetworks: ["base-sepolia"],
-//   contractDescription: "DAO Governance Contract for on-chain voting",
-// };
+const DAO_GOVERNANCE: SmartContractConfig = {
+  contractAddress: "0x0000000000000000000000000000000000000000" as Address,
+  abi: [
+    {
+      type: "function",
+      name: "propose",
+      inputs: [
+        { type: "string", name: "description" },
+        { type: "uint256", name: "votingPeriod" },
+      ],
+      outputs: [{ type: "uint256", name: "proposalId" }],
+      stateMutability: "nonpayable",
+    },
+    {
+      type: "function",
+      name: "vote",
+      inputs: [
+        { type: "uint256", name: "proposalId" },
+        { type: "bool", name: "support" },
+      ],
+      outputs: [],
+      stateMutability: "nonpayable",
+    },
+    {
+      type: "function",
+      name: "getProposal",
+      inputs: [{ type: "uint256", name: "proposalId" }],
+      outputs: [
+        { type: "string", name: "description" },
+        { type: "uint256", name: "votesFor" },
+        { type: "uint256", name: "votesAgainst" },
+      ],
+      stateMutability: "view",
+    },
+  ] as const,
+  supportedNetworks: ["base-sepolia"],
+  contractDescription: "DAO Governance Contract for on-chain voting",
+};
 
 /**
  * Export your active contract configurations
@@ -132,8 +132,10 @@ import type { SmartContractConfig } from "@/src/agentkit/action-providers";
  * the AI agent can interact with.
  */
 export const SMART_CONTRACT_CONFIGS: Record<string, SmartContractConfig> = {
-  // Uncomment to enable:
-  // usdc: USDC_BASE_SEPOLIA,
+  // Only enable contracts with real deployed addresses:
+  usdc: USDC_BASE_SEPOLIA,
+
+  // Templates with placeholder addresses (replace with real addresses to use):
   // nft: MY_NFT_CONTRACT,
   // dao: DAO_GOVERNANCE,
 
