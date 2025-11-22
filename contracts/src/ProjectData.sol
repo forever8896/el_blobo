@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title ProjectManager
+/// @title ProjectData
 /// @notice Single-project contract that evaluates required payment based on
 ///         project status, deadlines, and a linear diminishing schedule.
-contract ProjectManager {
+contract ProjectData {
     // -----------------------------
     // Types
     // -----------------------------
@@ -15,7 +15,7 @@ contract ProjectManager {
     }
 
     /// @dev Full on-chain project data struct
-    struct ProjectData {
+    struct Data {
         address assignee;      // Who should work on it
         uint64 createdAt;      // Creation timestamp
         uint64 beginDeadline;  // Time where assignee can get 100% of payment
@@ -44,7 +44,7 @@ contract ProjectManager {
     address public immutable owner;
 
     /// @notice The single project managed by this contract instance
-    ProjectData private project;
+    Data private project;
 
     // -----------------------------
     // Events
@@ -141,7 +141,7 @@ contract ProjectManager {
         view
         returns (uint256 paymentRequired)
     {
-        ProjectData storage p = project;
+        Data storage p = project;
 
         if (p.status == Status.Done) {
             return 0;
@@ -165,7 +165,7 @@ contract ProjectManager {
 
     /// @notice Get basic project info
     function getProject() external view returns (ProjectView memory v) {
-        ProjectData storage p = project;
+        Data storage p = project;
 
         v.assignee = p.assignee;
         v.createdAt = p.createdAt;

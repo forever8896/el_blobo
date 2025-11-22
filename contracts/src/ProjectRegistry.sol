@@ -63,7 +63,6 @@ contract ProjectRegistry {
     /// @notice Deploy a new ProjectData and register it under `key`
     /// @param key           The mapping key (e.g., assignee address or arbitrary project address)
     /// @param assignee      The assignee (passed to ProjectData)
-    /// @param committee     Three committee members (passed to ProjectData)
     /// @param beginDeadline Start of 100% payment window (ProjectData)
     /// @param endDeadline   End of window (0% after this, ProjectData)
     /// @param dbId          Off-chain database id (used only inside ProjectData)
@@ -71,7 +70,6 @@ contract ProjectRegistry {
     function createProject(
         address key,
         address assignee,
-        address[3] memory committee,
         uint64 beginDeadline,
         uint64 endDeadline,
         uint256 dbId,
@@ -84,7 +82,6 @@ contract ProjectRegistry {
         projectData = new ProjectData(
             owner,        // registry owner remains the admin/status controller
             assignee,
-            committee,
             beginDeadline,
             endDeadline,
             dbId,
