@@ -8,9 +8,9 @@ import { IRewardVault } from "./IRewardVault.sol";
 
 /// @title Main
 /// @notice Glue contract that holds references to the ProjectRegistry, a RewardVault,
-///         and per-project 4-of-4 multisigs (CallConfirmation4of4) and can use all of them.
+///         and per-project 4-of-4 multisigs (CallConfirmation4of4) retrieved via ProjectRegistry.
 contract Main {
-    /// @notice Project registry holding ProjectData instances
+    /// @notice Project registry holding ProjectData + multisig instances
     ProjectRegistry public immutable projectRegistry;
 
     /// @notice Reward vault holding the funds / tokens
@@ -18,10 +18,6 @@ contract Main {
 
     /// @notice Owner (can create projects, register project multisigs, update prices)
     address public owner;
-
-    /// @notice Per-project multisig (4-of-4) contracts
-    /// @dev keyed by the same `key` used in ProjectRegistry.projects mapping
-    mapping(address => CallConfirmation4of4) public projectMultisig;
 
     /// @notice Registered users
     mapping(address => bool) private registeredUsers;
@@ -71,21 +67,22 @@ contract Main {
         return keccak256(abi.encodePacked("PROJECT_PAYOUT", key));
     }
 
-    /// @dev Get the multisig for a project or revert if missing
-    function _getMultisigOrRevert(address key)
+    /// @dev Convenience helper to get (ProjectData, multisig) and sanity-check
+    function _getProjectInfoOrRevert(address key)
         internal
         view
-        returns (CallConfirmation4of4 ms)
+        returns (ProjectData pd, CallConfirmation4of4 ms)
     {
-        ms = projectMultisig[key];
+        (pd, ms) = projectRegistry.getProjectInfo(key);
+        require(address(pd) != address(0), "project not found");
         require(address(ms) != address(0), "multisig not set for project");
     }
 
     // ------------------------------------------------------------------------
-    // Multisig registration (per project)
+    // Multisig registration (per project) via ProjectRegistry
     // ------------------------------------------------------------------------
 
-    /// @notice Register a multisig instance for a given project key
+    /// @notice Register a multisig instance for a given project key in the registry
     /// @dev Intended to be called by the owner after deploying a multisig
     /// @param key The project key (same key used in ProjectRegistry)
     /// @param ms  The CallConfirmation4of4 instance for this project
@@ -93,15 +90,7 @@ contract Main {
         public
         onlyOwner
     {
-        require(key != address(0), "key = zero");
-        require(address(ms) != address(0), "multisig = zero");
-        require(address(projectMultisig[key]) == address(0), "multisig already set");
-
-        // verify that the project exists in the registry
-        ProjectData pd = projectRegistry.getProject(key);
-        require(address(pd) != address(0), "project not found in registry");
-
-        projectMultisig[key] = ms;
+        projectRegistry.setProjectMultisig(key, ms);
     }
 
     // ------------------------------------------------------------------------
@@ -138,6 +127,8 @@ contract Main {
 
     /// @notice Create a new ProjectData via the ProjectRegistry and wire its multisig
     /// @dev Only the Main owner can create projects (matches ProjectRegistry.onlyOwner).
+    ///      IMPORTANT: ProjectRegistry.owner must be this Main.owner, otherwise
+    ///      createProject/setProjectMultisig will revert.
     /// @param key           Project key (used in both registry and Main mappings)
     /// @param assignee      Project assignee
     /// @param beginDeadline Start of 100% payment window
@@ -154,6 +145,7 @@ contract Main {
         uint256 totalReward,
         CallConfirmation4of4 ms
     ) external onlyOwner {
+        // create ProjectData in registry
         projectRegistry.createProject(
             key,
             assignee,
@@ -163,7 +155,8 @@ contract Main {
             totalReward
         );
 
-        registerProjectMultisig(key, ms);
+        // and wire its multisig
+        projectRegistry.setProjectMultisig(key, ms);
     }
 
     /// @notice Sign a project payout as one of the 4 participants (assignee or committee)
@@ -172,7 +165,7 @@ contract Main {
     ///      - If after this call all 4 have signed, we automatically finalize the project.
     /// @param key The project key (same key used in ProjectRegistry)
     function signProject(address key) external {
-        CallConfirmation4of4 ms = _getMultisigOrRevert(key);
+        ( , CallConfirmation4of4 ms) = _getProjectInfoOrRevert(key);
         bytes32 callId = _projectCallId(key);
 
         ms.approve(callId);
@@ -186,7 +179,7 @@ contract Main {
     /// @notice External entrypoint to manually finalize a project once 4-of-4 have signed
     /// @param key The project key (same key used in ProjectRegistry)
     function finalizeProject(address key) external {
-        CallConfirmation4of4 ms = _getMultisigOrRevert(key);
+        ( , CallConfirmation4of4 ms) = _getProjectInfoOrRevert(key);
         bytes32 callId = _projectCallId(key);
         require(ms.isConfirmed(callId), "not fully signed");
         require(!projectFinalized[key], "already finalized");
@@ -197,7 +190,7 @@ contract Main {
     /// @dev Internal finalization logic:
     ///      - Ensure project exists in registry
     ///      - Evaluate reward (in asset units)
-    ///      - Convert to shares using vault.convertToShares
+    ///      - Convert to shares using RewardVault pricing
     ///      - Record project reward (in share units)
     ///      - Mark project as Done in ProjectData
     function _finalizeProject(address key) internal {
@@ -275,7 +268,10 @@ contract Main {
         view
         returns (uint256 paymentRequired)
     {
-        CallConfirmation4of4 ms = projectMultisig[key];
+        (ProjectData projectData, CallConfirmation4of4 ms) =
+            projectRegistry.getProjectInfo(key);
+
+        require(address(projectData) != address(0), "project not found");
         require(address(ms) != address(0), "multisig not set for project");
 
         bytes32 callId = _projectCallId(key);
@@ -284,7 +280,6 @@ contract Main {
             "payout not fully approved by multisig"
         );
 
-        ProjectData projectData = projectRegistry.getProject(key);
         return projectData.evaluatePayment(atTime);
     }
 }
