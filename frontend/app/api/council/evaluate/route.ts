@@ -101,8 +101,21 @@ THE BLOB only rewards real work.
     // Log the evaluation
     console.log(`[${judgeName}] evaluated ${projectId}:`, evaluation);
 
-    // TODO: Save to database (council_votes table)
-    // await saveCouncilVote(projectId, judgeId, evaluation.vote, evaluation.reasoning);
+    // Save to database (council_votes table)
+    try {
+      const { saveCouncilVote } = await import('@/app/lib/db-neon');
+      await saveCouncilVote({
+        projectId,
+        judgeId,
+        judgeName,
+        vote: evaluation.vote,
+        reason: evaluation.reasoning,
+        aiProvider: getProviderName(judgeName)
+      });
+    } catch (error) {
+      console.error('Error saving council vote:', error);
+      // Don't fail the request if saving fails
+    }
 
     return NextResponse.json({
       judgeId,

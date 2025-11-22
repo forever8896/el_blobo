@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer, User } from '@/app/lib/db-server';
+import { getUserByWallet, updateUser, User } from '@/app/lib/db-neon';
 
 export interface GetProfileResponse {
   success: boolean;
@@ -22,16 +22,10 @@ export async function GET(req: Request): Promise<NextResponse<GetProfileResponse
       );
     }
 
-    const normalizedAddress = walletAddress.toLowerCase();
-
     // Fetch user profile
-    const { data: user, error } = await supabaseServer
-      .from('users')
-      .select('*')
-      .eq('wallet_address', normalizedAddress)
-      .single();
+    const user = await getUserByWallet(walletAddress);
 
-    if (error || !user) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -72,28 +66,12 @@ export async function PUT(req: Request): Promise<NextResponse<GetProfileResponse
       );
     }
 
-    const normalizedAddress = walletAddress.toLowerCase();
-
     // Update user profile
-    const { data: updatedUser, error } = await supabaseServer
-      .from('users')
-      .update({
-        username,
-        skills,
-      })
-      .eq('wallet_address', normalizedAddress)
-      .select()
-      .single();
-
-    if (error || !updatedUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Failed to update user profile',
-        },
-        { status: 500 }
-      );
-    }
+    const updatedUser = await updateUser({
+      walletAddress,
+      username,
+      skills,
+    });
 
     return NextResponse.json({
       success: true,

@@ -2,7 +2,7 @@ import { AgentRequest, AgentResponse } from "@/app/types/api";
 import { NextResponse } from "next/server";
 import { createAgent } from "./create-agent";
 import { Message, generateId, generateText } from "ai";
-import { supabaseServer } from "@/app/lib/db-server";
+import { getUserByWallet, saveChatMessage } from "@/app/lib/db-neon";
 
 // Store messages per user wallet address
 const userMessages: Record<string, Message[]> = {};
@@ -35,11 +35,7 @@ export async function POST(
     let userContext = '';
     if (walletAddress) {
       try {
-        const { data: user } = await supabaseServer
-          .from('users')
-          .select('*')
-          .eq('wallet_address', walletAddress.toLowerCase())
-          .single();
+        const user = await getUserByWallet(walletAddress);
 
         if (user) {
           userContext = `
@@ -94,13 +90,13 @@ Use this context to personalize job recommendations and interactions.
     if (walletAddress) {
       try {
         await Promise.all([
-          supabaseServer.from('chat_messages').insert({
-            user_address: walletAddress.toLowerCase(),
+          saveChatMessage({
+            userAddress: walletAddress,
             role: 'user',
             content: userMessage
           }),
-          supabaseServer.from('chat_messages').insert({
-            user_address: walletAddress.toLowerCase(),
+          saveChatMessage({
+            userAddress: walletAddress,
             role: 'assistant',
             content: text
           })

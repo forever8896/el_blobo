@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/app/lib/db-server';
+import {
+  createUser,
+  getUserByWallet,
+  isUsernameTaken,
+} from '@/app/lib/db-neon';
 
 export interface RegisterUserRequest {
   walletAddress: string;
@@ -39,15 +43,8 @@ export async function POST(
       );
     }
 
-    // Normalize wallet address to lowercase for consistency
-    const normalizedAddress = walletAddress.toLowerCase();
-
     // Check if user already exists
-    const { data: existingUser } = await supabaseServer
-      .from('users')
-      .select('*')
-      .eq('wallet_address', normalizedAddress)
-      .single();
+    const existingUser = await getUserByWallet(walletAddress);
 
     if (existingUser) {
       return NextResponse.json(
@@ -60,13 +57,9 @@ export async function POST(
     }
 
     // Check if username is already taken
-    const { data: existingUsername } = await supabaseServer
-      .from('users')
-      .select('username')
-      .eq('username', username)
-      .single();
+    const usernameTaken = await isUsernameTaken(username);
 
-    if (existingUsername) {
+    if (usernameTaken) {
       return NextResponse.json(
         {
           success: false,
@@ -82,27 +75,12 @@ export async function POST(
       : null;
 
     // Create new user
-    const { data: newUser, error } = await supabaseServer
-      .from('users')
-      .insert({
-        wallet_address: normalizedAddress,
-        username,
-        skills,
-        referrer_address: referrerAddress?.toLowerCase() || null,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Database error creating user:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Failed to create user in database',
-        },
-        { status: 500 }
-      );
-    }
+    const newUser = await createUser({
+      walletAddress,
+      username,
+      skills,
+      referrerAddress: referrerAddress || null,
+    });
 
     return NextResponse.json({
       success: true,
