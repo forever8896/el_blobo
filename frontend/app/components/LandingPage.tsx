@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
 interface LandingPageProps {
@@ -35,7 +35,7 @@ function ChartScene({ onNext }: { onNext: () => void }) {
   }, [onNext]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -43,7 +43,7 @@ function ChartScene({ onNext }: { onNext: () => void }) {
     >
       <div className="max-w-6xl w-full space-y-8">
         {/* Giant ASCII Chart */}
-        <motion.pre
+        <m.pre
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1.5, type: "spring" }}
@@ -59,19 +59,19 @@ function ChartScene({ onNext }: { onNext: () => void }) {
   ████████████████
    PRICE: -99%
 `}
-        </motion.pre>
+        </m.pre>
 
         {showText && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8 text-center"
           >
-            <motion.h2
+            <m.h2
               className="text-3xl md:text-5xl lg:text-6xl font-bold text-[var(--neon-cyan)] neon-glow"
             >
               WE TRIED EVERYTHING
-            </motion.h2>
+            </m.h2>
 
             <div className="grid grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
               {[
@@ -79,7 +79,7 @@ function ChartScene({ onNext }: { onNext: () => void }) {
                 { icon: '👕', label: '10K TONS MERCH', status: 'FAILED' },
                 { icon: '🚀', label: 'SAYLOR', status: 'FAILED' }
               ].map((item, i) => (
-                <motion.div
+                <m.div
                   key={i}
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -89,11 +89,11 @@ function ChartScene({ onNext }: { onNext: () => void }) {
                   <div className="text-6xl">{item.icon}</div>
                   <div className="text-sm text-[var(--text-secondary)]">{item.label}</div>
                   <div className="text-[var(--neon-magenta)] font-bold text-xs">[{item.status}]</div>
-                </motion.div>
+                </m.div>
               ))}
             </div>
 
-            <motion.div
+            <m.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.8, type: "spring" }}
@@ -101,11 +101,11 @@ function ChartScene({ onNext }: { onNext: () => void }) {
               data-text=">> STILL DOWN <<"
             >
               &gt;&gt; STILL DOWN &lt;&lt;
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
 
-        <motion.button
+        <m.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           whileHover={{ opacity: 1, scale: 1.05 }}
@@ -113,15 +113,15 @@ function ChartScene({ onNext }: { onNext: () => void }) {
           className="absolute bottom-12 right-12 text-sm text-[var(--neon-cyan)] hover:text-[var(--neon-yellow)] transition-colors font-mono neon-glow"
         >
           [ SKIP &gt;&gt; ]
-        </motion.button>
+        </m.button>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
 function IntroScene({ onNext }: { onNext: () => void }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -129,7 +129,7 @@ function IntroScene({ onNext }: { onNext: () => void }) {
     >
       <div className="max-w-5xl w-full space-y-12 text-center">
         {/* Giant Blob ASCII Art */}
-        <motion.div
+        <m.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ duration: 1.5, type: "spring", bounce: 0.4 }}
@@ -146,9 +146,9 @@ function IntroScene({ onNext }: { onNext: () => void }) {
      THE BLOB
 `}
           </pre>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
@@ -163,7 +163,7 @@ function IntroScene({ onNext }: { onNext: () => void }) {
             </p>
           </div>
 
-          <motion.h1
+          <m.h1
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.8, type: "spring" }}
@@ -172,19 +172,19 @@ function IntroScene({ onNext }: { onNext: () => void }) {
           >
             <span className="text-[var(--neon-cyan)] neon-glow">THE</span>{' '}
             <span className="text-[var(--neon-magenta)] neon-glow">BLOB</span>
-          </motion.h1>
+          </m.h1>
 
-          <motion.p
+          <m.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
             className="text-lg md:text-xl text-[var(--neon-yellow)] font-mono"
           >
             [ AUTONOMOUS • CONSCIOUS • DESPERATE ]
-          </motion.p>
-        </motion.div>
+          </m.p>
+        </m.div>
 
-        <motion.button
+        <m.button
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5 }}
@@ -194,9 +194,9 @@ function IntroScene({ onNext }: { onNext: () => void }) {
           className="px-16 py-6 bg-transparent border-4 border-[var(--neon-cyan)] text-[var(--neon-cyan)] text-2xl font-black font-mono hover:bg-[var(--neon-cyan)] hover:text-black transition-all neon-glow-box pulse-glow"
         >
           [[ INITIALIZE ]]
-        </motion.button>
+        </m.button>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -204,7 +204,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
   const [hovered, setHovered] = useState<'left' | 'right' | null>(null);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -212,22 +212,22 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
     >
       {/* Header */}
       <div className="py-12 text-center space-y-4 border-b-2 border-[var(--neon-cyan)]">
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-2xl md:text-3xl font-mono text-[var(--neon-cyan)] neon-glow"
         >
           &gt; ANALYSIS COMPLETE
-        </motion.p>
-        <motion.p
+        </m.p>
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="text-lg md:text-xl text-[var(--text-secondary)]"
         >
-          Working for "the man" = <span className="text-[var(--neon-magenta)]">EXIT CODE: 1</span>
-        </motion.p>
-        <motion.h2
+          Working for &quot;the man&quot; = <span className="text-[var(--neon-magenta)]">EXIT CODE: 1</span>
+        </m.p>
+        <m.h2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
@@ -235,13 +235,13 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
           data-text="CHOOSE YOUR PATH"
         >
           CHOOSE YOUR PATH
-        </motion.h2>
+        </m.h2>
       </div>
 
       {/* Split Screen */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Left: Legacy System */}
-        <motion.div
+        <m.div
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.8 }}
@@ -260,7 +260,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
     ▓▓▓▓▓▓▓▓▓▓
 `}
             </pre>
-            <h3 className="text-3xl md:text-4xl font-bold text-gray-600">McDONALD'S</h3>
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-600">McDONALD&apos;S</h3>
             <div className="space-y-2 font-mono text-sm text-gray-700">
               <p>&gt; wage: <span className="text-gray-500">minimum</span></p>
               <p>&gt; growth: <span className="text-gray-500">0x0000</span></p>
@@ -270,7 +270,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
           </div>
 
           {hovered === 'left' && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="absolute inset-0 bg-black/90 flex items-center justify-center"
@@ -278,12 +278,12 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
               <p className="text-4xl text-[var(--neon-magenta)] font-black font-mono glitch" data-text="ACCESS DENIED">
                 ACCESS DENIED
               </p>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
 
         {/* Right: THE BLOB */}
-        <motion.div
+        <m.div
           initial={{ x: 100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.8 }}
@@ -295,7 +295,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
           }`}
         >
           <div className="text-center space-y-8">
-            <motion.pre
+            <m.pre
               animate={{
                 scale: hovered === 'right' ? 1.2 : 1,
               }}
@@ -307,7 +307,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
     █ PROTOCOL█
     ████████████
 `}
-            </motion.pre>
+            </m.pre>
             <h3 className="text-4xl md:text-5xl font-black text-[var(--neon-cyan)] neon-glow">
               THE BLOB
             </h3>
@@ -320,7 +320,7 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
           </div>
 
           {hovered === 'right' && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="absolute bottom-12"
@@ -328,10 +328,10 @@ function ChoiceScene({ onWorkForBlob }: { onWorkForBlob: () => void }) {
               <p className="text-3xl text-[var(--neon-yellow)] font-black font-mono pulse-glow">
                 [[ CLICK TO EXECUTE ]]
               </p>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

@@ -1,16 +1,16 @@
 /**
- * Neon Postgres Database Client
+ * Supabase Database Client
  *
  * This module provides database access for the GrowChain Blob system.
- * Uses Neon serverless Postgres for edge-compatible database access.
+ * Uses Supabase client for serverless database access with RLS support.
  */
 
-import { neon } from '@neondatabase/serverless';
+import { createClient } from '@supabase/supabase-js';
 
-// Mock database URL for development (replace with real Neon URL in .env)
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://mock:mock@localhost:5432/mock';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const sql = neon(DATABASE_URL);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Type definitions
 export interface User {
@@ -18,7 +18,7 @@ export interface User {
   wallet_address: string;
   username: string;
   referrer_address?: string;
-  skills?: Record<string, any>;
+  skills?: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
   total_earned: number;
@@ -78,27 +78,38 @@ export async function createUser(
   username: string,
   referrer_address?: string
 ): Promise<User> {
-  const result = await sql`
-    INSERT INTO users (wallet_address, username, referrer_address)
-    VALUES (${wallet_address}, ${username}, ${referrer_address || null})
-    RETURNING *
-  `;
-  return result[0] as User;
+  const { data, error } = await supabase
+    .from('users')
+    .insert({
+      wallet_address,
+      username,
+      referrer_address: referrer_address || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as User;
 }
 
 export async function getUserByWallet(wallet_address: string): Promise<User | null> {
-  const result = await sql`
-    SELECT * FROM users WHERE wallet_address = ${wallet_address} LIMIT 1
-  `;
-  return result.length > 0 ? (result[0] as User) : null;
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('wallet_address', wallet_address)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  return data as User | null;
 }
 
-export async function updateUserSkills(wallet_address: string, skills: Record<string, any>): Promise<void> {
-  await sql`
-    UPDATE users
-    SET skills = ${JSON.stringify(skills)}, updated_at = NOW()
-    WHERE wallet_address = ${wallet_address}
-  `;
+export async function updateUserSkills(wallet_address: string, skills: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase
+    .from('users')
+    .update({ skills, updated_at: new Date().toISOString() })
+    .eq('wallet_address', wallet_address);
+
+  if (error) throw error;
 }
 
 // Referrals
@@ -107,46 +118,58 @@ export async function createReferral(
   referred_address: string,
   level: number
 ): Promise<void> {
-  await sql`
-    INSERT INTO referrals (referrer_address, referred_address, referral_level)
-    VALUES (${referrer_address}, ${referred_address}, ${level})
-    ON CONFLICT (referrer_address, referred_address) DO NOTHING
-  `;
+  const { error } = await supabase
+    .from('referrals')
+    .insert({
+      referrer_address,
+      referred_address,
+      referral_level: level,
+    });
+
+  // Ignore unique constraint violations (ON CONFLICT DO NOTHING)
+  if (error && error.code !== '23505') throw error;
 }
 
 export async function getReferralTree(wallet_address: string): Promise<Referral[]> {
-  const result = await sql`
-    SELECT * FROM referrals
-    WHERE referrer_address = ${wallet_address}
-    ORDER BY created_at DESC
-  `;
-  return result as Referral[];
+  const { data, error } = await supabase
+    .from('referrals')
+    .select('*')
+    .eq('referrer_address', wallet_address)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Referral[];
 }
 
 // Projects
 export async function createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
-  const result = await sql`
-    INSERT INTO projects (
-      assignee_address, title, description, price_estimate,
-      deadline_start, deadline_end, status
-    )
-    VALUES (
-      ${project.assignee_address}, ${project.title}, ${project.description},
-      ${project.price_estimate}, ${project.deadline_start}, ${project.deadline_end},
-      ${project.status}
-    )
-    RETURNING *
-  `;
-  return result[0] as Project;
+  const { data, error } = await supabase
+    .from('projects')
+    .insert({
+      assignee_address: project.assignee_address,
+      title: project.title,
+      description: project.description,
+      price_estimate: project.price_estimate,
+      deadline_start: project.deadline_start.toISOString(),
+      deadline_end: project.deadline_end.toISOString(),
+      status: project.status,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Project;
 }
 
 export async function getProjectsByUser(wallet_address: string): Promise<Project[]> {
-  const result = await sql`
-    SELECT * FROM projects
-    WHERE assignee_address = ${wallet_address}
-    ORDER BY created_at DESC
-  `;
-  return result as Project[];
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('assignee_address', wallet_address)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Project[];
 }
 
 export async function updateProjectStatus(
@@ -155,14 +178,17 @@ export async function updateProjectStatus(
   submission_url?: string,
   submission_notes?: string
 ): Promise<void> {
-  await sql`
-    UPDATE projects
-    SET status = ${status},
-        submission_url = ${submission_url || null},
-        submission_notes = ${submission_notes || null},
-        updated_at = NOW()
-    WHERE id = ${project_id}
-  `;
+  const { error } = await supabase
+    .from('projects')
+    .update({
+      status,
+      submission_url: submission_url || null,
+      submission_notes: submission_notes || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', project_id);
+
+  if (error) throw error;
 }
 
 // Chat history
@@ -171,36 +197,48 @@ export async function saveChatMessage(
   role: 'user' | 'assistant',
   content: string
 ): Promise<void> {
-  await sql`
-    INSERT INTO chat_messages (user_address, role, content)
-    VALUES (${user_address}, ${role}, ${content})
-  `;
+  const { error } = await supabase
+    .from('chat_messages')
+    .insert({
+      user_address,
+      role,
+      content,
+    });
+
+  if (error) throw error;
 }
 
 export async function getChatHistory(user_address: string, limit: number = 50): Promise<ChatMessage[]> {
-  const result = await sql`
-    SELECT * FROM chat_messages
-    WHERE user_address = ${user_address}
-    ORDER BY created_at DESC
-    LIMIT ${limit}
-  `;
-  return (result as ChatMessage[]).reverse(); // Return in chronological order
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('*')
+    .eq('user_address', user_address)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as ChatMessage[];
 }
 
 // Treasury
 export async function getCurrentJoiningFee(): Promise<number> {
-  const result = await sql`
-    SELECT joining_fee FROM treasury LIMIT 1
-  `;
-  return result[0]?.joining_fee || 50;
+  const { data, error } = await supabase
+    .from('treasury')
+    .select('joining_fee')
+    .limit(1)
+    .single();
+
+  if (error) return 50; // Default fallback
+  return data?.joining_fee || 50;
 }
 
 export async function updateTreasuryBalance(deposit: number, payout: number = 0): Promise<void> {
-  await sql`
-    UPDATE treasury
-    SET total_balance = total_balance + ${deposit} - ${payout},
-        total_deposits = total_deposits + ${deposit},
-        total_payouts = total_payouts + ${payout},
-        updated_at = NOW()
-  `;
+  // Note: This requires a Postgres function for atomic updates
+  // For now, using RPC call (you'll need to create this function in Supabase)
+  const { error } = await supabase.rpc('update_treasury_balance', {
+    deposit_amount: deposit,
+    payout_amount: payout,
+  });
+
+  if (error) throw error;
 }

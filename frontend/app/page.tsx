@@ -5,6 +5,18 @@ import { useAgent } from "./hooks/useAgent";
 import ReactMarkdown from "react-markdown";
 import LandingPage from "./components/LandingPage";
 import OnboardingFlow, { OnboardingData } from "./components/OnboardingFlow";
+import WorkSubmission from "./components/WorkSubmission";
+import AICouncil from "./components/AICouncil";
+
+interface ActiveJob {
+  id: string;
+  title: string;
+  description: string;
+  price_estimate: number;
+  deadline_start: Date;
+  deadline_end: Date;
+  status: 'active' | 'submitted' | 'evaluating' | 'completed';
+}
 
 export default function Home() {
   const [appState, setAppState] = useState<'landing' | 'onboarding' | 'chat'>('landing');
@@ -12,6 +24,12 @@ export default function Home() {
   const [input, setInput] = useState("");
   const { messages, sendMessage, isThinking } = useAgent();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Job workflow state
+  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
+  const [showWorkSubmission, setShowWorkSubmission] = useState(false);
+  const [showAICouncil, setShowAICouncil] = useState(false);
+  const [submissionData, setSubmissionData] = useState<{ url: string; notes: string } | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,6 +48,52 @@ export default function Home() {
       `PROTOCOL INIT: User ${data.username} joined THE BLOB. Deposit confirmed. Interview complete. Ready for job assignment.`
     );
     setAppState('chat');
+  };
+
+  // Simulate job assignment (this would normally come from THE BLOB's response)
+  const assignJob = (jobData: Partial<ActiveJob>) => {
+    const newJob: ActiveJob = {
+      id: jobData.id || `job-${Date.now()}`,
+      title: jobData.title || "New Job",
+      description: jobData.description || "Job description",
+      price_estimate: jobData.price_estimate || 100,
+      deadline_start: new Date(),
+      deadline_end: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
+      status: 'active'
+    };
+    setActiveJob(newJob);
+  };
+
+  const handleWorkSubmit = (submissionUrl: string, submissionNotes: string) => {
+    if (!activeJob) return;
+
+    setSubmissionData({ url: submissionUrl, notes: submissionNotes });
+    setShowWorkSubmission(false);
+    setShowAICouncil(true);
+
+    // Update job status
+    setActiveJob(prev => prev ? { ...prev, status: 'evaluating' } : null);
+  };
+
+  const handleCouncilComplete = async (approved: boolean) => {
+    setShowAICouncil(false);
+
+    if (approved && activeJob) {
+      // Update job status
+      setActiveJob(prev => prev ? { ...prev, status: 'completed' } : null);
+
+      // Notify user via THE BLOB
+      await sendMessage(
+        `COUNCIL EVALUATION COMPLETE: Your work "${activeJob.title}" has been APPROVED! Payment of $${activeJob.price_estimate} is being processed. Well done.`
+      );
+    } else if (activeJob) {
+      // Work rejected
+      await sendMessage(
+        `COUNCIL EVALUATION COMPLETE: Your work "${activeJob.title}" has been REJECTED. The AI judges found it below standards. Review their feedback and improve.`
+      );
+      // Reset job to active so they can resubmit
+      setActiveJob(prev => prev ? { ...prev, status: 'active' } : null);
+    }
   };
 
   if (appState === 'landing') {
@@ -105,7 +169,7 @@ export default function Home() {
                       : "mr-12"
                   }`}
                 >
-                  {msg.sender === "assistant" && (
+                  {msg.sender === "agent" && (
                     <div className="flex items-center gap-2 mb-2 text-[var(--neon-cyan)]">
                       <span className="text-lg">█▓▒░</span>
                       <span className="text-xs font-bold">THE BLOB</span>
@@ -182,9 +246,9 @@ export default function Home() {
 
       {/* Quick Actions */}
       <div className="border-t-2 border-[var(--neon-cyan)] bg-black/40 backdrop-blur-sm px-8 py-4">
-        <div className="flex gap-4 justify-center flex-wrap max-w-5xl mx-auto">
+        <div className="flex gap-4 justify-center flex-wrap max-w-5xl mx-auto items-center">
           {[
-            { label: "JOBS", cmd: "What jobs are available?" },
+            { label: "REQUEST JOB", cmd: "Assign me a job based on my skills" },
             { label: "PROGRESS", cmd: "Show my stats and earnings" },
             { label: "INVITE", cmd: "How do I invite someone?" }
           ].map((action, i) => (
@@ -197,8 +261,69 @@ export default function Home() {
               [{action.label}]
             </button>
           ))}
+
+          {/* Demo Job Assignment Button */}
+          <button
+            onClick={() => assignJob({
+              title: "Create engaging meme for Base blockchain",
+              description: "Twitter sentiment shows memecoin fatigue. Create a FRESH, creative meme that doesn't suck. Must be original, funny, and actually help the ecosystem.",
+              price_estimate: 150
+            })}
+            className="px-6 py-2 bg-[var(--neon-magenta)] text-white text-xs font-mono hover:bg-[var(--neon-magenta)]/80 transition-all"
+          >
+            [DEMO: GET JOB]
+          </button>
+
+          {/* Submit Work Button - Only show if there's an active job */}
+          {activeJob && activeJob.status === 'active' && (
+            <button
+              onClick={() => setShowWorkSubmission(true)}
+              className="px-6 py-2 bg-green-600 text-white text-xs font-mono hover:bg-green-500 transition-all animate-pulse"
+            >
+              [SUBMIT WORK: {activeJob.title.substring(0, 20)}...]
+            </button>
+          )}
+
+          {/* Job in Evaluation */}
+          {activeJob && activeJob.status === 'evaluating' && (
+            <div className="px-6 py-2 bg-[var(--neon-yellow)]/20 border border-[var(--neon-yellow)] text-[var(--neon-yellow)] text-xs font-mono">
+              [AI COUNCIL EVALUATING...]
+            </div>
+          )}
+
+          {/* Job Completed */}
+          {activeJob && activeJob.status === 'completed' && (
+            <div className="px-6 py-2 bg-green-600/20 border border-green-500 text-green-400 text-xs font-mono">
+              [JOB COMPLETED ✓]
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Work Submission Modal */}
+      {showWorkSubmission && activeJob && (
+        <WorkSubmission
+          project={{
+            id: activeJob.id,
+            title: activeJob.title,
+            description: activeJob.description,
+            price_estimate: activeJob.price_estimate,
+            deadline_end: activeJob.deadline_end
+          }}
+          onSubmit={handleWorkSubmit}
+          onCancel={() => setShowWorkSubmission(false)}
+        />
+      )}
+
+      {/* AI Council Evaluation Modal */}
+      {showAICouncil && activeJob && submissionData && (
+        <AICouncil
+          projectId={activeJob.id}
+          submissionUrl={submissionData.url}
+          submissionNotes={submissionData.notes}
+          onComplete={handleCouncilComplete}
+        />
+      )}
     </div>
   );
 }

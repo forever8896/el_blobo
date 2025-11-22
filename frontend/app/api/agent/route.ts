@@ -41,8 +41,7 @@ export async function POST(
       experimental_telemetry: {
         isEnabled: true,
       },
-      // Additional configuration for better tool use
-      maxToolRoundtrips: 5,
+      maxSteps: agent.maxSteps,
     });
 
     // 4. Add the agent's response to the messages

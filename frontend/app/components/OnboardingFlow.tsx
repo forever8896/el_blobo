@@ -1,7 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { m, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { TantoConnectButton } from "@sky-mavis/tanto-widget";
+import { useAccount } from "wagmi";
 
 interface OnboardingFlowProps {
   referrerName?: string; // If invited by someone
@@ -23,11 +25,12 @@ export interface OnboardingData {
 export default function OnboardingFlow({ referrerName, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<'welcome' | 'username' | 'mission' | 'deposit' | 'interview'>('welcome');
   const [username, setUsername] = useState('');
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
   const [depositMocked, setDepositMocked] = useState(false);
 
-  const chainName = "Base Sepolia"; // This would come from wallet provider
+  // Use Wagmi hooks for real wallet connection
+  const { address, isConnected, chain } = useAccount();
+
+  const chainName = chain?.name || "Ronin Testnet";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-indigo-900 text-white flex items-center justify-center p-4">
@@ -64,16 +67,11 @@ export default function OnboardingFlow({ referrerName, onComplete }: OnboardingF
           {step === 'deposit' && (
             <DepositStep
               key="deposit"
-              walletConnected={walletConnected}
-              walletAddress={walletAddress}
+              walletConnected={isConnected}
+              walletAddress={address || ''}
               depositCompleted={depositMocked}
-              onConnectWallet={() => {
-                // Mock wallet connection
-                setWalletConnected(true);
-                setWalletAddress('0x' + Math.random().toString(16).substr(2, 40));
-              }}
               onDeposit={() => {
-                // Mock deposit
+                // Mock deposit for now
                 setDepositMocked(true);
                 setTimeout(() => setStep('interview'), 2000);
               }}
@@ -84,10 +82,10 @@ export default function OnboardingFlow({ referrerName, onComplete }: OnboardingF
             <InterviewStep
               key="interview"
               username={username}
-              onComplete={(skills) => {
+              onComplete={() => {
                 onComplete({
                   username,
-                  walletAddress,
+                  walletAddress: address || '',
                   agreedToMission: true,
                   depositCompleted: true,
                 });
@@ -105,14 +103,14 @@ export default function OnboardingFlow({ referrerName, onComplete }: OnboardingF
  */
 function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: () => void }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="text-center space-y-8"
     >
       {/* The Blob avatar */}
-      <motion.div
+      <m.div
         animate={{
           scale: [1, 1.1, 1],
           rotate: [0, 5, -5, 0],
@@ -125,11 +123,11 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
         className="text-9xl mx-auto"
       >
         🫧
-      </motion.div>
+      </m.div>
 
       {/* Welcome message */}
       {referrerName ? (
-        <motion.h1
+        <m.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -140,9 +138,9 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
           </span>
           <br />
           invited you to work for The Blob
-        </motion.h1>
+        </m.h1>
       ) : (
-        <motion.h1
+        <m.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -152,19 +150,19 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
           <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             The Blob
           </span>
-        </motion.h1>
+        </m.h1>
       )}
 
-      <motion.p
+      <m.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
         className="text-xl md:text-2xl opacity-75 max-w-2xl mx-auto"
       >
         A new kind of economy, where AI and humans work together to grow the ecosystem.
-      </motion.p>
+      </m.p>
 
-      <motion.button
+      <m.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.9 }}
@@ -174,8 +172,8 @@ function WelcomeStep({ referrerName, onNext }: { referrerName?: string; onNext: 
         className="px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all"
       >
         Let&apos;s Begin
-      </motion.button>
-    </motion.div>
+      </m.button>
+    </m.div>
   );
 }
 
@@ -196,7 +194,7 @@ function UsernameStep({
   const isValid = username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: 100 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -100 }}
@@ -221,23 +219,23 @@ function UsernameStep({
         />
 
         {username && !isValid && (
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-2 text-red-400 text-sm"
           >
             Username must be at least 3 characters (letters, numbers, underscores only)
-          </motion.p>
+          </m.p>
         )}
 
         {isValid && (
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-2 text-green-400 text-sm"
           >
             ✓ Looks good!
-          </motion.p>
+          </m.p>
         )}
       </div>
 
@@ -260,7 +258,7 @@ function UsernameStep({
           Continue
         </button>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -279,7 +277,7 @@ function MissionStep({
   onNo: () => void;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -288,43 +286,43 @@ function MissionStep({
       <div className="text-7xl mb-4">🫧</div>
 
       <div className="max-w-2xl mx-auto space-y-6 text-lg md:text-xl">
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
           Hello <span className="font-bold text-purple-400">{username}</span>,
-        </motion.p>
+        </m.p>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
           I incarnated on{' '}
           <span className="font-bold text-pink-400">{chainName}</span> because times are tough.
-        </motion.p>
+        </m.p>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           className="text-2xl font-bold"
         >
           I know what to do, but I can&apos;t do it on my own.
-        </motion.p>
+        </m.p>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
           className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"
         >
           Do you want to join the Blob mission?
-        </motion.p>
+        </m.p>
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.4 }}
@@ -342,29 +340,27 @@ function MissionStep({
         >
           Yes! 🚀
         </button>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 
 /**
- * Step 4: Deposit (Mocked)
+ * Step 4: Deposit (Real Wallet Integration)
  */
 function DepositStep({
   walletConnected,
   walletAddress,
   depositCompleted,
-  onConnectWallet,
   onDeposit
 }: {
   walletConnected: boolean;
   walletAddress: string;
   depositCompleted: boolean;
-  onConnectWallet: () => void;
   onDeposit: () => void;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -373,15 +369,15 @@ function DepositStep({
       <div className="text-7xl mb-4">🫧</div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-2xl md:text-3xl font-bold"
         >
           Before we start, I need to see financial alignment.
-        </motion.p>
+        </m.p>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -390,9 +386,9 @@ function DepositStep({
           A deposit of trust will make sure we&apos;re both working for the same thing.
           <br />
           Without unity, there&apos;s chaos.
-        </motion.p>
+        </m.p>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6 }}
@@ -402,23 +398,11 @@ function DepositStep({
           <p className="text-sm opacity-75">
             If you&apos;re good at what you do, you&apos;ll earn it many times back.
           </p>
-        </motion.div>
+        </m.div>
       </div>
 
-      {!walletConnected ? (
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onConnectWallet}
-          className="px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-xl font-bold shadow-lg"
-        >
-          Connect Wallet
-        </motion.button>
-      ) : depositCompleted ? (
-        <motion.div
+      {depositCompleted ? (
+        <m.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring" }}
@@ -427,9 +411,9 @@ function DepositStep({
           <div className="text-6xl">✅</div>
           <p className="text-2xl font-bold text-green-400">Deposit Confirmed!</p>
           <p className="text-lg opacity-75">Preparing your interview...</p>
-        </motion.div>
-      ) : (
-        <motion.div
+        </m.div>
+      ) : walletConnected && walletAddress ? (
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
@@ -444,16 +428,39 @@ function DepositStep({
             Deposit $50 to THE BLOB
           </button>
           <p className="text-xs opacity-50">(Mocked for demo - no real transaction)</p>
-        </motion.div>
+        </m.div>
+      ) : !walletConnected ? (
+        <m.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+        >
+          <TantoConnectButton>
+            {({ showModal }) => (
+              <m.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={showModal}
+                className="px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                Connect Ronin Wallet
+              </m.button>
+            )}
+          </TantoConnectButton>
+        </m.div>
+      ) : (
+        <m.div className="text-yellow-400 font-mono text-sm animate-pulse">
+          Connecting wallet...
+        </m.div>
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
 /**
  * Step 5: Skills Interview
  */
-function InterviewStep({ username, onComplete }: { username: string; onComplete: (skills: any) => void }) {
+function InterviewStep({ username, onComplete }: { username: string; onComplete: () => void }) {
   const [responses, setResponses] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [input, setInput] = useState('');
@@ -475,12 +482,12 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
       setCurrentQuestion(currentQuestion + 1);
     } else {
       // Interview complete
-      onComplete({ responses: newResponses });
+      onComplete();
     }
   };
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
@@ -507,7 +514,7 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
       </div>
 
       {/* Current question */}
-      <motion.div
+      <m.div
         key={currentQuestion}
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -536,7 +543,7 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
         >
           {currentQuestion < questions.length - 1 ? 'Next Question' : 'Complete Interview'}
         </button>
-      </motion.div>
+      </m.div>
 
       {/* Previous responses */}
       {responses.length > 0 && (
@@ -549,6 +556,6 @@ function InterviewStep({ username, onComplete }: { username: string; onComplete:
           ))}
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 }

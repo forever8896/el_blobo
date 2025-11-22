@@ -121,7 +121,7 @@ Sentiment score guide:
       query,
       sentiment: parsedSentiment,
       citations,
-      tool_calls: toolCalls.map((tc: any) => ({
+      tool_calls: toolCalls.map((tc: { function?: { name?: string; arguments?: string } }) => ({
         tool: tc.function?.name,
         arguments: tc.function?.arguments,
       })),
