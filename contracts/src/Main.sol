@@ -50,6 +50,8 @@ contract Main {
     /// @notice Whether a project has already been finalized
     mapping(address => bool) public projectFinalized;
 
+    uint256 private registrationPrice;
+
     // ------------------------------------------------------------------------
     // Constructor & modifiers
     // ------------------------------------------------------------------------
@@ -121,7 +123,7 @@ contract Main {
     /// @dev Payable: user sends ETH, which is deposited into the vault on their behalf.
     function register() external payable {
         require(!registeredUsers[msg.sender], "already registered");
-        require(msg.value > 0, "no funds sent");
+        require(msg.value >= this.registrationPrice, "no funds sent");
 
         // Buy vault shares for the user
         vault.deposit{value: msg.value}(msg.value, owner);
@@ -251,6 +253,9 @@ contract Main {
     // ------------------------------------------------------------------------
     // Read-only helpers
     // ------------------------------------------------------------------------
+    function updateRegistrationPrice(uint256 price) external {
+        this.registrationPrice = price;
+    }
 
     /// @notice Helper: read how much should be paid for a given project key, at a given time
     /// @dev Requires that the payout has been fully approved by the 4-of-4 multisig
