@@ -1,0 +1,30 @@
+{
+  "network": "Ronin Saigon Testnet",
+  "chainId": 2021,
+  "rpcUrl": "https://saigon-testnet.roninchain.com/rpc",
+  "explorer": "https://saigon-app.roninchain.com",
+  "deployedAt": "2025-01-22",
+  "deployer": "0xC426867C776efC7680880d1441ab8dB5cbDe06B0",
+  "targetOwner": "0xb7cDCd1a98bD3Ed1FeBc396128B15a917Bb44AAe",
+  "contracts": {
+    "Main": {
+      "address": "0x105BAE5259f8653F6e15252e58BEaFFA87a80F91",
+      "currentOwner": "0xC426867C776efC7680880d1441ab8dB5cbDe06B0"
+    },
+    "ProjectRegistry": {
+      "address": "0x836d6e4E8A1a60Ae8DE0F3E9E711a0A6Ed8C2D04",
+      "currentOwner": "0xb7cDCd1a98bD3Ed1FeBc396128B15a917Bb44AAe"
+    },
+    "NativeRewardVault": {
+      "address": "0xec2F81059c1abDEA021D5fc23bB8B61C4f5F5adA",
+      "currentOwner": "0xC426867C776efC7680880d1441ab8dB5cbDe06B0",
+      "initialBalance": "1000000000000000000",
+      "registrationPrice": "50000000"
+    }
+  },
+  "notes": [
+    "NativeRewardVault uses native RON tokens for payments (not ERC20)",
+    "Vault initially funded with 1 RON",
+    "Ownership needs to be transferred to 0xb7cDCd1a98bD3Ed1FeBc396128B15a917Bb44AAe"
+  ]
+}
