@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2025-11-22T23:37:20.524Z",
+  "network": "base-sepolia",
+  "wallets": [
+    {
+      "id": 1,
+      "address": "0x8Ec01FaD4383612bfc857F4d76F7f62D0fb4f46F",
+      "network": "base-sepolia",
+      "type": "EVM",
+      "createdAt": "2025-11-22T23:37:17.565Z"
+    },
+    {
+      "id": 2,
+      "address": "0x783CD4B360ACa13b1A5374aB8105932AF47d513E",
+      "network": "base-sepolia",
+      "type": "EVM",
+      "createdAt": "2025-11-22T23:37:18.823Z"
+    },
+    {
+      "id": 3,
+      "address": "0x526a4C270897FF531408cb1282Db9153517F7739",
+      "network": "base-sepolia",
+      "type": "EVM",
+      "createdAt": "2025-11-22T23:37:19.833Z"
+    }
+  ]
+}
