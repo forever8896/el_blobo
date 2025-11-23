@@ -194,6 +194,7 @@ export class CouncilOrchestrator {
    * Select primary judges for deep analysis based on content type
    */
   private selectPrimaryJudges(contentType: string): JudgeSpecialization[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const specialized = selectJudgesForContent(contentType as any);
     return specialized.length > 0 ? specialized : councilMembers.slice(0, 2);
   }

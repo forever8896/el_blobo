@@ -12,9 +12,9 @@ async function demonstrateWalletUsage() {
   const cdp = new CdpClient();
 
   // Get wallet addresses from .env
-  const wallet1Address = process.env.CDP_WALLET_1_ADDRESS!;
-  const wallet2Address = process.env.CDP_WALLET_2_ADDRESS!;
-  const wallet3Address = process.env.CDP_WALLET_3_ADDRESS!;
+  const wallet1Address = process.env.CDP_WALLET_1_ADDRESS! as `0x${string}`;
+  const wallet2Address = process.env.CDP_WALLET_2_ADDRESS! as `0x${string}`;
+  const wallet3Address = process.env.CDP_WALLET_3_ADDRESS! as `0x${string}`;
 
   console.log("\n📋 Available Wallets:");
   console.log(`   Wallet 1: ${wallet1Address}`);

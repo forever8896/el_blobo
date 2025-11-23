@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import AICouncil from "../../../components/AICouncil";
 import { use } from "react";
 
+export const dynamic = 'force-dynamic';
+
 export default function CouncilPage({ params }: { params: Promise<{ jobId: string }> }) {
   const router = useRouter();
   const { jobId } = use(params);

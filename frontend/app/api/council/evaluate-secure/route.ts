@@ -12,7 +12,8 @@
  * - Output validation and monitoring
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextResponse, NextRequest } from 'next/server';
 import { CouncilOrchestrator } from '@/app/lib/council/orchestrator-simple';
 
 export async function POST(req: NextRequest) {
@@ -147,8 +148,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Retrieve votes from database
-    const { getCouncilVotes } = await import('@/app/lib/db-neon');
-    const votes = await getCouncilVotes(projectId);
+    const { getProjectVotes } = await import('@/app/lib/db-neon');
+    const votes = await getProjectVotes(projectId);
 
     if (!votes || votes.length === 0) {
       return NextResponse.json(

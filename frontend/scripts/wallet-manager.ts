@@ -26,12 +26,12 @@ export class WalletManager {
   /**
    * Get wallet address by role/name
    */
-  getWalletAddress(walletName: 'treasury' | 'rewards' | 'operations'): string {
+  getWalletAddress(walletName: 'treasury' | 'rewards' | 'operations'): `0x${string}` {
     const address = this.wallets.get(walletName);
     if (!address) {
       throw new Error(`Wallet ${walletName} not found`);
     }
-    return address;
+    return address as `0x${string}`;
   }
 
   /**
@@ -39,7 +39,7 @@ export class WalletManager {
    */
   async sendFromWallet(
     walletName: 'treasury' | 'rewards' | 'operations',
-    to: string,
+    to: `0x${string}`,
     amount: bigint,
     network: string = 'base-sepolia'
   ) {
@@ -53,7 +53,7 @@ export class WalletManager {
         to: to,
         value: amount,
       },
-      network: network,
+      network: network as any,
     });
 
     return result;

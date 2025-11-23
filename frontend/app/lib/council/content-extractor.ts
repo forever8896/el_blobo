@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Content Extractor for AI Council
  * Fetches and preprocesses content from various sources
@@ -125,7 +126,7 @@ export class ContentExtractor {
       }
 
       // Fetch repository contents (root level)
-      let codeFiles: CodeFile[] = [];
+      const codeFiles: CodeFile[] = [];
       try {
         const contentsResponse = await fetch(
           `https://api.github.com/repos/${owner}/${cleanRepo}/contents`,

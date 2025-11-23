@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Security utilities for AI Council
  * Implements multi-layer prompt injection defense
