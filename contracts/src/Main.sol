@@ -91,7 +91,7 @@ contract Main {
         uint256 price = vault.registrationPrice();
         require(msg.value >= price, "fee below registration price");
 
-        users.register(bigSponsor, smallSponsor);
+        users.register(userAddress, bigSponsor, smallSponsor);
 
         emit UserRegistered(userAddress);
 

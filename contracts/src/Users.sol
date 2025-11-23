@@ -23,8 +23,7 @@ contract Users {
     /// @notice Register msg.sender as a new user and deploy a `User` contract for them
     /// @param bigSponsor   Address of big sponsor (or 0 for none)
     /// @param smallSponsor Address of small sponsor (or 0 for none)
-    function register(address bigSponsor, address smallSponsor) external {
-        address userAddr = msg.sender;
+    function register(address userAddr, address bigSponsor, address smallSponsor) external {
         require(address(userContracts[userAddr]) == address(0), "user already registered");
 
         // No small sponsor without big sponsor
