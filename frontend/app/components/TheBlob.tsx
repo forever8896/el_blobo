@@ -392,7 +392,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
 
         window.addEventListener('resize', handleResize);
         document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('wheel', handleWheel, { passive: true });
+        // document.addEventListener('wheel', handleWheel, { passive: true });
 
         // 8. Animation Loop
         const animate = () => {
@@ -454,7 +454,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         return () => {
             window.removeEventListener('resize', handleResize);
             document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('wheel', handleWheel);
+            // document.removeEventListener('wheel', handleWheel);
             cancelAnimationFrame(requestRef.current);
             
             if (currentContainer && rendererRef.current) {
