@@ -1,7 +1,7 @@
 import { AgentRequest, AgentResponse } from "@/app/types/api";
 import { NextResponse } from "next/server";
 import { createAgent } from "./create-agent";
-import { Message, generateId, generateText } from "ai";
+import { CoreMessage, generateText } from "ai";
 import { getUserByWallet, saveChatMessage, getChatHistory, getAdminSuggestions } from "@/app/lib/db-neon";
 import { getTreasuryInfo, formatTreasuryForAgent } from "@/app/lib/contractUtils";
 import { DEFAULT_JOB_SUGGESTIONS } from "@/app/config/admin";
@@ -98,7 +98,7 @@ Use this context to personalize project recommendations and interactions.
     }
 
     // 5. Load full chat history from database for context
-    let messages: Message[] = [];
+    let messages: CoreMessage[] = [];
     if (walletAddress) {
       try {
         const chatHistory = await getChatHistory(walletAddress, 100); // Load last 100 messages
@@ -148,7 +148,6 @@ ${twitterData.citations?.slice(0, 5).map((c: any) => `- ${c.url}`).join('\n') ||
 USE THIS REAL DATA to propose specific, data-driven projects!`;
 
             messages.push({
-              id: generateId(),
               role: 'user',
               content: sentimentSummary
             });
@@ -161,7 +160,6 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
 
     // Add the current user message to history
     messages.push({
-      id: generateId(),
       role: "user",
       content: userMessage
     });
@@ -171,13 +169,13 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
     const userConfirms = ['yes', 'yep', 'sure', 'sounds good', "let's do", 'do it', 'confirm', 'proceed', 'go ahead', 'start'].some(
       phrase => userMessage.toLowerCase().includes(phrase)
     );
-    const assistantProposedProject = lastAssistantMsg?.content?.toLowerCase?.()?.includes('budget') &&
-      (lastAssistantMsg.content?.toLowerCase?.()?.includes('title') || lastAssistantMsg.content?.toLowerCase?.()?.includes('project'));
+    const lastContent = typeof lastAssistantMsg?.content === 'string' ? lastAssistantMsg.content : '';
+    const assistantProposedProject = lastContent.toLowerCase().includes('budget') &&
+      (lastContent.toLowerCase().includes('title') || lastContent.toLowerCase().includes('project'));
 
     if (userConfirms && assistantProposedProject) {
       const walletHint = walletAddress ? `Use ${walletAddress} for projectKey and assigneeAddress.` : 'Use the user wallet from context for projectKey and assigneeAddress.';
       messages.push({
-        id: generateId(),
         role: 'system',
         content: `Project confirmation mode: Call create_project_onchain now with camelCase params { projectKey, assigneeAddress, title, description, budgetRON, durationDays }. ${walletHint} Do not call other tools for project creation. If any field is missing, ask for it explicitly instead of calling other tools.`
       });
@@ -283,6 +281,29 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
     const hadToolError = result.steps?.some((step: any) =>
       step.content?.some((c: any) => c.type === 'tool-error' || (c.output && JSON.stringify(c.output).includes('ZodError')))
     );
+
+    // If the model only returned tool calls with no final text, synthesize a user-facing message from tool results
+    if (!text || !text.trim()) {
+      const toolResults = (result.steps || [])
+        .flatMap((step: any) => step.content || [])
+        .filter((c: any) => c.type === 'tool-result');
+
+      if (toolResults.length > 0) {
+        const rendered = toolResults.map((tr: any) => {
+          const name = tr.toolName || 'tool';
+          const output = tr.output;
+          if (output && typeof output === 'object') {
+            if ('message' in output && typeof output.message === 'string') {
+              return `✅ ${name}: ${output.message}`;
+            }
+            return `✅ ${name}: ${JSON.stringify(output)}`;
+          }
+          return `✅ ${name}: ${String(output ?? 'completed')}`;
+        });
+
+        text = rendered.join('\n\n');
+      }
+    }
 
     // No manual fallback: Grok must call create_project_onchain with correct parameters
 

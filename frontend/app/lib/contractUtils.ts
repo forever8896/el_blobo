@@ -137,6 +137,15 @@ export async function registerUser(
       args: [userAddress, bigSponsorAddr, smallSponsorAddr],
       value: registrationPrice,
       account: userAddress,
+      chain: {
+        id: RONIN_SAIGON_TESTNET.chainId,
+        name: RONIN_SAIGON_TESTNET.name,
+        nativeCurrency: { name: "RON", symbol: "RON", decimals: 18 },
+        rpcUrls: {
+          default: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+          public: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+        },
+      },
     });
 
     console.log('Transaction submitted:', hash);

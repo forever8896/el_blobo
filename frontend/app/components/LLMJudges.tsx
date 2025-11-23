@@ -204,28 +204,31 @@ const LLMJudges = forwardRef(({ initialAgents }, ref) => {
     const height = containerRef.current.clientHeight;
 
     const scene = new THREE.Scene();
-    // Use very subtle fog to allow deep reflections to be visible
-    scene.fog = new THREE.FogExp2(0x000000, 0.01); 
-    
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
-    
+    // Lighter background for better visibility
+    scene.background = new THREE.Color(0x1a1a1a);
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    // Start camera at good viewing position (skip intro)
+    camera.position.set(0, 5, 22);
+    camera.lookAt(0, 2, 0);
+
     const curvePoints = [
-        new THREE.Vector3(0, 40, 80),   
-        new THREE.Vector3(20, 25, 50),  
-        new THREE.Vector3(5, 10, 30),   
-        new THREE.Vector3(0, 3, 18)     
+        new THREE.Vector3(0, 40, 80),
+        new THREE.Vector3(20, 25, 50),
+        new THREE.Vector3(5, 10, 30),
+        new THREE.Vector3(0, 5, 22)
     ];
     const cameraPath = new THREE.CatmullRomCurve3(curvePoints);
-    
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-    
-    // RESTORED: Cinematic Tone Mapping for high contrast
+
+    // Higher tone mapping exposure for brightness
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2; // Slightly increased exposure
+    renderer.toneMappingExposure = 1.8;
 
     // Cleanup
     while (containerRef.current.firstChild) {
@@ -234,52 +237,69 @@ const LLMJudges = forwardRef(({ initialAgents }, ref) => {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting - MASSIVE FRONT LIGHTS SETUP
-    // Increased ambient to ensure nothing is black
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6); 
+    // SUPER BRIGHT LIGHTING for full visibility
+    // Very high ambient light
+    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambient);
 
-    // Massive Front Directional Light (The "Studio Flood")
-    const frontLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    frontLight.position.set(0, 10, 20);
+    // Multiple directional lights for even coverage
+    const frontLight = new THREE.DirectionalLight(0xffffff, 5.0);
+    frontLight.position.set(0, 10, 25);
     frontLight.castShadow = true;
     scene.add(frontLight);
+
+    const topLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    topLight.position.set(0, 20, 0);
+    scene.add(topLight);
 
     // Helper to add target to scene (crucial for spotlights)
     const addSpot = (color, intensity, x, y, z, penumbra = 0.5) => {
         const spot = new THREE.SpotLight(color, intensity);
         spot.position.set(x, y, z);
-        spot.target.position.set(0, 0, 0); 
+        spot.target.position.set(0, 0, 0);
         spot.penumbra = penumbra;
         spot.castShadow = true;
-        // Increased distance/decay handling for "massive" feel
         spot.distance = 200;
-        spot.decay = 1.5; 
+        spot.decay = 1.0;
         scene.add(spot);
         scene.add(spot.target);
         return spot;
     };
 
-    // Side lights with INTENSE brightness to cut through shadows
-    addSpot(PALETTE.cobaltBlue, 200.0, -25, 20, 10); // Was 4.0
-    addSpot(PALETTE.sunsetOrange, 200.0, 25, 20, 10); // Was 4.0
-    
+    // Ultra bright side lights
+    addSpot(PALETTE.cobaltBlue, 300.0, -25, 20, 15);
+    addSpot(PALETTE.sunsetOrange, 300.0, 25, 20, 15);
+
     // Center white hot spot
-    const mainSpot = addSpot(0xffffff, 20.0, 0, 25, 25, 0.2); // Was 2.0
-    mainSpot.angle = Math.PI / 4;
-    
-    // Backlight for silhouettes (using palette)
-    const rimLight = new THREE.PointLight(PALETTE.neonMint, 5.0, 50);
-    rimLight.position.set(0, 10, -10);
-    scene.add(rimLight);
+    const mainSpot = addSpot(0xffffff, 100.0, 0, 25, 25, 0.2);
+    mainSpot.angle = Math.PI / 3;
+
+    // Multiple rim lights for silhouettes
+    const rimLight1 = new THREE.PointLight(PALETTE.neonMint, 10.0, 100);
+    rimLight1.position.set(0, 10, -15);
+    scene.add(rimLight1);
+
+    const rimLight2 = new THREE.PointLight(0xffffff, 8.0, 100);
+    rimLight2.position.set(15, 8, 10);
+    scene.add(rimLight2);
+
+    const rimLight3 = new THREE.PointLight(0xffffff, 8.0, 100);
+    rimLight3.position.set(-15, 8, 10);
+    scene.add(rimLight3);
 
     setupStage(scene);
     
     sceneData.current.scene = scene;
     sceneData.current.camera = camera;
     sceneData.current.cameraPath = cameraPath;
+    sceneData.current.introActive = false; // Skip intro, start immediately
 
     AGENTS_CONFIG.forEach(config => createJudge(scene, config));
+
+    // Show UI immediately
+    if (uiLayerRef.current) {
+      uiLayerRef.current.style.opacity = '1';
+    }
   };
 
   const setupStage = (scene) => {
@@ -590,23 +610,11 @@ const LLMJudges = forwardRef(({ initialAgents }, ref) => {
 
       if (!scene || !camera) return;
 
-      if (sceneData.current.introActive) {
-        sceneData.current.introProgress += dt * 0.6; 
-        if (sceneData.current.introProgress > 1) {
-          sceneData.current.introProgress = 1;
-          sceneData.current.introActive = false;
-          if (uiLayerRef.current) uiLayerRef.current.style.opacity = '1';
-        }
-        if (cameraPath) {
-          const point = cameraPath.getPoint(sceneData.current.introProgress);
-          camera.position.copy(point);
-          camera.lookAt(new THREE.Vector3(0, 2, 0));
-        }
-      } else {
-        camera.position.x = Math.sin(time * 0.2) * 1; 
-        camera.position.y = 3 + Math.sin(time * 0.3) * 0.2;
-        camera.lookAt(new THREE.Vector3(0, 2, 0));
-      }
+      // Gentle camera movement (no intro)
+      camera.position.x = Math.sin(time * 0.15) * 2;
+      camera.position.y = 5 + Math.sin(time * 0.2) * 0.5;
+      camera.position.z = 22 + Math.sin(time * 0.1) * 1;
+      camera.lookAt(new THREE.Vector3(0, 2, 0));
 
       judges.forEach((j) => {
         j.avatar.rotation.z += dt * j.avatar.userData.spinSpeed; 

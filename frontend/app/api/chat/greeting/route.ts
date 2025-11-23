@@ -129,7 +129,6 @@ export async function POST(req: Request): Promise<NextResponse<GreetingResponse>
           }
         }
       } : {}),
-      maxSteps: 15,
     });
 
     // 7. Save the greeting to chat history

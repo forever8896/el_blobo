@@ -105,37 +105,41 @@ export default function DepositPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-8 text-center"
+      className="space-y-10 text-center"
     >
-      <div className="max-w-2xl mx-auto space-y-6">
-        <m.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-2xl md:text-3xl font-black font-mono text-blob-mint text-balance"
+      <div className="max-w-3xl mx-auto space-y-8">
+        <m.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
         >
-          FINANCIAL ALIGNMENT REQUIRED
-        </m.p>
+          <h1 className="text-3xl md:text-5xl font-black font-mono text-blob-mint text-balance leading-tight">
+            FINANCIAL ALIGNMENT<br/>REQUIRED
+          </h1>
 
-        <m.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-lg text-blob-peach font-mono text-balance"
-        >
-          &quot;Skin in the game&quot; ensures quality.
-        </m.p>
+          <m.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl md:text-2xl text-blob-peach/80 font-mono text-balance"
+          >
+            &quot;Skin in the game&quot; ensures quality.
+          </m.p>
+        </m.div>
 
         <m.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6 }}
-          className="bg-black border-2 border-blob-mint p-8 shadow-[8px_8px_0px_#1E4CDD] inline-block"
+          transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+          className="bg-gradient-to-br from-black to-blob-violet/10 border-4 border-blob-mint p-12 shadow-[12px_12px_0px_#1E4CDD] inline-block hover:shadow-[16px_16px_0px_#1E4CDD] transition-all duration-300"
         >
-          <div className="text-6xl font-black mb-2 text-blob-mint font-mono">
-            {registrationPriceFormatted ? `${registrationPriceFormatted} RON` : 'Loading...'}
+          <div className="text-7xl md:text-8xl font-black mb-4 text-blob-mint font-mono tracking-tight">
+            {registrationPriceFormatted ? `${registrationPriceFormatted}` : 'Loading...'}
+            <span className="text-5xl md:text-6xl ml-3">RON</span>
           </div>
-          <p className="text-sm text-blob-peach font-mono">
-            REGISTRATION FEE - BLOCKCHAIN VERIFIED
+          <div className="h-1 w-32 bg-blob-cobalt mx-auto mb-4"></div>
+          <p className="text-sm md:text-base text-blob-peach/90 font-mono tracking-wider">
+            REGISTRATION FEE · BLOCKCHAIN VERIFIED
           </p>
         </m.div>
       </div>
@@ -145,93 +149,161 @@ export default function DepositPage() {
         <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-red-900/20 border-2 border-red-500 p-4 max-w-md mx-auto"
+          className="bg-red-950/40 border-3 border-red-500 p-6 max-w-lg mx-auto backdrop-blur-sm"
         >
-          <p className="text-red-400 font-mono text-sm">ERROR: {registrationError}</p>
+          <div className="text-4xl mb-2">⚠️</div>
+          <p className="text-red-400 font-mono text-base font-bold">ERROR: {registrationError}</p>
         </m.div>
       )}
 
-      {/* Transaction Hash */}
+      {/* Transaction Hash - Enhanced waiting state */}
       {txHash && !isRegistered && (
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2 max-w-md mx-auto"
+          className="space-y-6 max-w-2xl mx-auto"
         >
-          <p className="text-sm text-blob-mint font-mono">TRANSACTION SUBMITTED</p>
-          <p className="text-xs text-gray-400 font-mono break-all">
-            {txHash}
-          </p>
-          <p className="text-xs text-blob-peach font-mono animate-pulse">AWAITING CONFIRMATION...</p>
+          <div className="relative">
+            <div className="absolute inset-0 bg-blob-mint/5 blur-xl animate-pulse"></div>
+            <div className="relative bg-black/60 border-2 border-blob-mint/50 p-8 backdrop-blur-sm">
+              <m.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 border-4 border-blob-mint/30 border-t-blob-mint rounded-full mx-auto mb-6"
+              />
+
+              <p className="text-lg md:text-xl text-blob-mint font-mono font-bold mb-4">
+                TRANSACTION SUBMITTED
+              </p>
+
+              <div className="bg-blob-violet/10 border border-blob-mint/30 p-4 mb-4">
+                <p className="text-xs text-gray-500 font-mono mb-1">TX HASH</p>
+                <p className="text-xs md:text-sm text-blob-mint/70 font-mono break-all">
+                  {txHash}
+                </p>
+              </div>
+
+              <m.p
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-base md:text-lg text-blob-peach font-mono font-bold"
+              >
+                ⏳ AWAITING BLOCKCHAIN CONFIRMATION...
+              </m.p>
+
+              <p className="text-xs text-gray-500 font-mono mt-4">
+                This usually takes 10-30 seconds
+              </p>
+            </div>
+          </div>
         </m.div>
       )}
 
       {isRegistered ? (
         <m.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring" }}
-          className="space-y-4"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          className="space-y-6"
         >
-          <div className="text-6xl">✅</div>
-          <p className="text-2xl font-bold text-blob-green font-mono">REGISTRATION CONFIRMED</p>
-          <p className="text-lg text-white font-mono">ON-CHAIN VERIFIED</p>
-          <p className="text-sm text-gray-400 font-mono">INITIALIZING INTERVIEW...</p>
+          <m.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-8xl"
+          >
+            ✅
+          </m.div>
+          <div className="bg-blob-green/10 border-2 border-blob-green p-8 inline-block shadow-[8px_8px_0px_rgba(79,255,176,0.3)]">
+            <p className="text-3xl md:text-4xl font-bold text-blob-green font-mono mb-2">
+              REGISTRATION CONFIRMED
+            </p>
+            <div className="h-1 w-24 bg-blob-green mx-auto mb-3"></div>
+            <p className="text-lg md:text-xl text-white font-mono mb-2">ON-CHAIN VERIFIED</p>
+            <m.p
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="text-sm text-gray-400 font-mono"
+            >
+              INITIALIZING INTERVIEW...
+            </m.p>
+          </div>
         </m.div>
       ) : isConnected && address ? (
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
+          className="space-y-6"
         >
-          <div className="space-y-2">
-            <p className="text-sm text-blob-green font-mono border border-blob-green inline-block px-2 py-1">
-              ✓ WALLET CONNECTED
-            </p>
-            <p className="text-xs text-gray-400 font-mono">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 bg-blob-green/10 border-2 border-blob-green px-4 py-2">
+              <span className="text-blob-green text-lg">✓</span>
+              <p className="text-sm md:text-base text-blob-green font-mono font-bold">
+                WALLET CONNECTED
+              </p>
+            </div>
+            <p className="text-sm text-gray-400 font-mono bg-black/40 border border-gray-700 inline-block px-4 py-2">
               {address.slice(0, 6)}...{address.slice(-4)}
             </p>
           </div>
-          <br/>
-          <button
-            onClick={handleDeposit}
-            disabled={isRegistering || !isConnected}
-            className={`px-12 py-4 border-2 text-xl font-bold font-mono transition-all ${
-              isRegistering || !isConnected
-                ? 'bg-gray-600 border-gray-500 text-gray-400 cursor-not-allowed'
-                : 'bg-blob-cobalt border-blob-mint text-white hover:shadow-[6px_6px_0px_#4FFFB0] hover:-translate-y-1'
-            }`}
-          >
-            {isRegistering ? 'REGISTERING ON-CHAIN...' : 'REGISTER ON-CHAIN'}
-          </button>
-          <p className="text-xs text-blob-orange font-mono uppercase">
-            [ RONIN SAIGON TESTNET - REAL TRANSACTION ]
-          </p>
+
+          {/* Only show register button if not awaiting confirmation */}
+          {!txHash && (
+            <m.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <m.button
+                whileHover={{ scale: 1.03, boxShadow: "8px 8px 0px #4FFFB0" }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleDeposit}
+                disabled={isRegistering || !isConnected}
+                className={`px-16 py-5 border-4 text-xl md:text-2xl font-bold font-mono transition-all ${
+                  isRegistering || !isConnected
+                    ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+                    : 'bg-blob-cobalt border-blob-mint text-white shadow-[6px_6px_0px_#4FFFB0]'
+                }`}
+              >
+                {isRegistering ? '⏳ REGISTERING...' : '🚀 REGISTER ON-CHAIN'}
+              </m.button>
+              <div className="inline-flex items-center gap-2 text-blob-orange/70">
+                <div className="w-2 h-2 bg-blob-orange rounded-full animate-pulse"></div>
+                <p className="text-xs md:text-sm font-mono font-bold tracking-wider">
+                  RONIN SAIGON TESTNET · REAL TRANSACTION
+                </p>
+              </div>
+            </m.div>
+          )}
         </m.div>
       ) : (
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="space-y-4 flex flex-col items-center"
+          transition={{ delay: 0.5 }}
+          className="space-y-6 flex flex-col items-center"
         >
           <TantoConnectButton>
             {({ showModal }) => (
               <m.button
-                whileHover={{ scale: 1.05, boxShadow: "6px 6px 0px #1E4CDD" }}
+                whileHover={{ scale: 1.05, boxShadow: "10px 10px 0px #1E4CDD" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={showModal}
-                className="px-12 py-4 bg-white text-blob-violet border-2 border-blob-cobalt rounded-none text-xl font-bold transition-all font-mono"
+                className="px-16 py-5 bg-white text-blob-violet border-4 border-blob-cobalt text-2xl font-black transition-all font-mono shadow-[6px_6px_0px_#1E4CDD]"
               >
-                CONNECT WALLET
+                🔗 CONNECT WALLET
               </m.button>
             )}
           </TantoConnectButton>
 
+          <p className="text-xs text-gray-600 font-mono">
+            Connect your Ronin wallet to continue
+          </p>
+
           {/* Debug: Clear cache button */}
           <button
             onClick={handleClearCache}
-            className="text-xs text-gray-500 hover:text-white font-mono underline"
+            className="text-xs text-gray-600 hover:text-gray-400 font-mono underline"
           >
             Clear Wallet Cache & Reload
           </button>

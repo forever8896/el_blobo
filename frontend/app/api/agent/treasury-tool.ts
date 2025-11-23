@@ -58,4 +58,4 @@ export const getTreasuryBalanceTool = tool({
       };
     }
   },
-});
+} as any);

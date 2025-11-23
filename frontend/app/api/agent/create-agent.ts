@@ -32,7 +32,7 @@ const xai = createXai({
 type Agent = {
   tools: ReturnType<typeof getVercelAITools> & Record<string, any>;
   system: string;
-  model: ReturnType<typeof openai> | ReturnType<typeof createXai>;
+  model: any; // Support both LanguageModelV1 and LanguageModelV2
   maxSteps?: number;
 };
 let agent: Agent;

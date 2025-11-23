@@ -115,7 +115,7 @@ export default function Home() {
             });
           });
         }
-      }, null, "+=0.2")
+      }, undefined, "+=0.2")
       .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .to(introText3Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
 
