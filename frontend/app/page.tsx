@@ -84,17 +84,20 @@ export default function Home() {
       .to(introChartRef.current, { opacity: 0.7, duration: 0.8 }, "<0.2") // Fade in chart
 
     // 1. ETFs + Image Flash (Below Text)
-      .to(introText1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 })
-      .to(introImage1Ref.current, { opacity: 1, duration: 0.2, delay: 0.7 }, "start") 
-      .to(introImage1Ref.current, { opacity: 0, duration: 0.2, delay: 0.4 }) 
-      .to(introText1Ref.current, { opacity: 0, duration: fadeOutDuration }, ">-0.2") 
-      
+      .addLabel("etfs")
+      .to(introText1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 }, "etfs")
+      .to(introImage1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 }, "etfs")
+      .to({}, { duration: 0.5 }) // Hold for 0.5s more
+      .to(introText1Ref.current, { opacity: 0, duration: fadeOutDuration })
+      .to(introImage1Ref.current, { opacity: 0, duration: fadeOutDuration }, "<")
+
       // 2. Saylor + Image Flash (Above Text)
       .addLabel("saylor")
       .to(introText2Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }, "saylor")
-      .to(introImage2Ref.current, { opacity: 1, duration: 0.2, delay: gapDuration + 0.2 }, "saylor") 
-      .to(introImage2Ref.current, { opacity: 0, duration: 0.2, delay: 0.4 })
-      .to(introText2Ref.current, { opacity: 0, duration: fadeOutDuration }, ">-0.2")
+      .to(introImage2Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }, "saylor")
+      .to({}, { duration: 0.5 }) // Hold for 0.5s more
+      .to(introText2Ref.current, { opacity: 0, duration: fadeOutDuration })
+      .to(introImage2Ref.current, { opacity: 0, duration: fadeOutDuration }, "<")
       
       // 3. Merch + Falling T-Shirts
       .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
@@ -321,7 +324,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
             <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
               <p className="text-white text-xl font-mono tracking-widest font-bold text-center">
-                Work for Fiat
+                Work for Fiat 🍔
               </p>
             </div>
           </Link>
@@ -335,13 +338,13 @@ export default function Home() {
               src="/choice/ronin.webp"
               alt="Ronin Path"
               fill
-              className="object-contain bg-[#0052FF] p-8"
+              className="object-contain  p-12 pb-24"
               priority
             />
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all duration-300" />
             <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
               <p className="text-white text-xl font-mono tracking-widest font-bold text-center">
-                Grow Ronin
+                Grow Ronin 🐵
               </p>
             </div>
           </Link>
