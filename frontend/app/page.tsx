@@ -240,7 +240,7 @@ export default function Home() {
                 </div>
                 {/* Text Bottom */}
                 <p ref={introText2Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
-                    We tried Michael Saylor
+                    We&apos;ve tried Michael Saylor
                 </p>
           </div>
 

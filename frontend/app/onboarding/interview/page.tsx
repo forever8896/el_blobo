@@ -59,6 +59,9 @@ export default function InterviewPage() {
         localStorage.setItem('username', state.username);
         localStorage.setItem('onboardingComplete', 'true');
 
+        // Clear onboarding state now that it's complete
+        localStorage.removeItem('onboarding_state');
+
         router.push('/dashboard');
       } else {
         alert(`Registration failed: ${result.message}`);
