@@ -166,6 +166,23 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
       content: userMessage
     });
 
+    // If this looks like a project confirmation, strongly bias Grok to call create_project_onchain
+    const lastAssistantMsg = messages.slice(0, -1).reverse().find(m => m.role === 'assistant');
+    const userConfirms = ['yes', 'yep', 'sure', 'sounds good', "let's do", 'do it', 'confirm', 'proceed', 'go ahead', 'start'].some(
+      phrase => userMessage.toLowerCase().includes(phrase)
+    );
+    const assistantProposedProject = lastAssistantMsg?.content?.toLowerCase?.()?.includes('budget') &&
+      (lastAssistantMsg.content?.toLowerCase?.()?.includes('title') || lastAssistantMsg.content?.toLowerCase?.()?.includes('project'));
+
+    if (userConfirms && assistantProposedProject) {
+      const walletHint = walletAddress ? `Use ${walletAddress} for projectKey and assigneeAddress.` : 'Use the user wallet from context for projectKey and assigneeAddress.';
+      messages.push({
+        id: generateId(),
+        role: 'system',
+        content: `Project confirmation mode: Call create_project_onchain now with camelCase params { projectKey, assigneeAddress, title, description, budgetRON, durationDays }. ${walletHint} Do not call other tools for project creation. If any field is missing, ask for it explicitly instead of calling other tools.`
+      });
+    }
+
     // 8. ALWAYS remind agent of current treasury (not just on keywords)
     // This ensures budget discussions are ALWAYS grounded in reality
     console.log('🤖 Agent tools available:', Object.keys(agent.tools));

@@ -24,33 +24,33 @@ interface ActiveJob {
   status: 'active' | 'submitted' | 'evaluating' | 'completed';
 }
 
-// Funny crypto-themed thinking messages
+// Funny crypto/work-themed thinking messages
 const THINKING_MESSAGES = [
-  "Checking portfolio... closing it down",
-  "Building a L4 on L3 on a L2...",
-  "Deploying to mainnet (just kidding, testnet)",
-  "Waiting for gas fees to drop...",
-  "Reading the whitepaper (actually just the memes)",
-  "Bridging to another chain...",
-  "Staking my reputation on this...",
-  "Consulting the oracle...",
-  "Calculating APY (Actually Probably Yolo)",
+  "Checking portfolio... yep, still down",
+  "Pretending to read the whitepaper...",
+  "Asking ChatGPT how to do this...",
+  "Wondering if I'm actually decentralized...",
+  "Calculating how much coffee I need...",
   "Checking if we're still early...",
-  "Running it on devnet first...",
-  "Compiling smart contract... found 0 bugs (sus)",
-  "Asking the DAO for permission...",
-  "Waiting for block confirmation...",
-  "Optimizing for gas efficiency...",
-  "Cross-chain messaging in progress...",
-  "Generating wallet seed phrase... wrote it down this time",
-  "Checking on-chain activity...",
-  "Analyzing liquidity pools...",
-  "Verifying on Etherscan...",
-  "Summoning liquidity from the void...",
-  "Calculating impermanent loss...",
-  "Aping into this request...",
-  "Checking for rug pulls...",
-  "WAGMI... probably"
+  "Consulting the magic 8-ball...",
+  "WAGMI... probably... maybe...",
+  "Aping into this decision...",
+  "Checking for rug pulls in your request...",
+  "Summoning motivation from the void...",
+  "Rotating my thinking cap NFT...",
+  "Procrastinating... I mean processing...",
+  "Doing the needful...",
+  "Touching grass... just kidding",
+  "Manifesting a good answer...",
+  "Asking the council of voices in my head...",
+  "Brewing digital coffee...",
+  "Staking my reputation on this one...",
+  "Channeling big brain energy...",
+  "Consulting the vibes...",
+  "Running it by my lawyer (I don't have one)...",
+  "Checking the meme archives...",
+  "Pondering the meaning of work...",
+  "Definitely not winging it..."
 ];
 
 export default function Dashboard() {
@@ -536,7 +536,15 @@ export default function Dashboard() {
             {isThinking && (
               <div className="flex items-center gap-3 text-blob-mint p-4">
                 <span className="text-sm font-bold">THE BLOB</span>
-                <span className="text-sm animate-pulse">{thinkingMessage}<span className="cursor-blink">_</span></span>
+                <div className="flex items-center gap-2">
+                  {/* Animated thinking dots */}
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-blob-mint rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-blob-mint rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-blob-mint rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span className="text-sm">{thinkingMessage}</span>
+                </div>
               </div>
             )}
 
@@ -573,61 +581,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="border-t-2 border-blob-cobalt bg-blob-violet px-8 py-4">
-        <div className="flex gap-4 justify-center flex-wrap max-w-5xl mx-auto items-center">
-          {[
-            { label: "REQUEST JOB", cmd: "Assign me a job based on my skills" },
-            { label: "PROGRESS", cmd: "Show my stats and earnings" },
-            { label: "INVITE", cmd: "How do I invite someone?" }
-          ].map((action, i) => (
-            <button
-              key={i}
-              onClick={() => sendMessage(action.cmd)}
-              disabled={isThinking}
-              className="px-6 py-2 bg-transparent border-2 border-blob-cobalt text-blob-mint text-xs font-mono hover:bg-blob-cobalt hover:text-white transition-all disabled:opacity-30 hover:shadow-[3px_3px_0px_#4FFFB0]"
-            >
-              [{action.label}]
-            </button>
-          ))}
-
-          {/* Demo Job Assignment Button */}
-          <button
-            onClick={() => assignJob({
-              title: "Create engaging meme for Base blockchain",
-              description: "Twitter sentiment shows memecoin fatigue. Create a FRESH, creative meme that doesn't suck. Must be original, funny, and actually help the ecosystem.",
-              price_estimate: 150
-            })}
-            className="px-6 py-2 bg-blob-orange border-2 border-white text-black text-xs font-mono hover:scale-105 transition-all font-bold shadow-[3px_3px_0px_#FFFFFF]"
-          >
-            [DEMO: GET JOB]
-          </button>
-
-          {/* Submit Work Button - Only show if there's an active job */}
-          {activeJob && activeJob.status === 'active' && (
-            <button
-              onClick={() => setShowWorkSubmission(true)}
-              className="px-6 py-2 bg-blob-green border-2 border-white text-black text-xs font-mono hover:scale-105 transition-all animate-pulse font-bold"
-            >
-              [SUBMIT WORK: {activeJob.title.substring(0, 20)}...]
-            </button>
-          )}
-
-          {/* Job in Evaluation */}
-          {activeJob && activeJob.status === 'evaluating' && (
-            <div className="px-6 py-2 bg-blob-orange/20 border border-blob-orange text-blob-orange text-xs font-mono">
-              [AI COUNCIL EVALUATING...]
-            </div>
-          )}
-
-          {/* Job Completed */}
-          {activeJob && activeJob.status === 'completed' && (
-            <div className="px-6 py-2 bg-blob-green/20 border border-blob-green text-blob-green text-xs font-mono">
-              [JOB COMPLETED ✓]
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Work Submission Modal */}
       {showWorkSubmission && activeJob && (

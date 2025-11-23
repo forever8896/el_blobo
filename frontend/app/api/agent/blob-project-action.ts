@@ -16,12 +16,33 @@ import MainABI from "@/app/abis/Main.json";
  * Schema for creating a project
  */
 const CreateProjectSchema = z.object({
-  projectKey: z.string().describe("Unique project identifier - MUST use the user's wallet address from USER CONTEXT"),
-  assigneeAddress: z.string().describe("The user's wallet address who will work on this project - MUST use the user's wallet address from USER CONTEXT"),
-  title: z.string().describe("Project title/name - be descriptive and clear"),
-  description: z.string().describe("Detailed project description including deliverables and requirements"),
-  budgetRON: z.number().describe("Project budget in RON tokens (e.g. 5 for 5 RON) - MUST be within treasury limits"),
-  durationDays: z.number().default(7).describe("Project duration in days (default 7 days, can be 3-30)"),
+  projectKey: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "projectKey must be a 0x-prefixed address")
+    .describe("Project key (0x... address) - use the user's wallet address from USER CONTEXT"),
+  assigneeAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "assigneeAddress must be a 0x-prefixed address")
+    .describe("Assignee address (0x... address) - use the user's wallet address from USER CONTEXT"),
+  title: z
+    .string()
+    .min(3)
+    .describe("Project title/name - be descriptive and clear"),
+  description: z
+    .string()
+    .min(10)
+    .describe("Detailed project description including deliverables and requirements"),
+  budgetRON: z
+    .number()
+    .positive()
+    .describe("Project budget in RON tokens (e.g. 5 for 5 RON) - MUST be within treasury limits"),
+  durationDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(90)
+    .default(7)
+    .describe("Project duration in days (default 7 days, range 1-90)"),
 });
 
 /**

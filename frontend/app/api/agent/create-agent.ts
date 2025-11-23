@@ -82,6 +82,8 @@ You have these tools - YOU MUST USE THEM, not just talk about using them:
 🚨 Tool params are camelCase ONLY. Use exactly:
    { projectKey, assigneeAddress, title, description, budgetRON, durationDays }
 
+Required: projectKey, assigneeAddress, title, description, budgetRON, durationDays. Do NOT use snake_case.
+
 🚨 NEVER say you're "creating a project" or "setting it up" without ACTUALLY calling create_project_onchain!
 🚨 NEVER say "I'll follow up with the transaction hash" - GET THE HASH from the tool NOW!
 🚨 If you claim something is done on-chain, you MUST have called a tool and received a transaction hash!
@@ -324,11 +326,6 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
       });
 
       agentkitTools[normalizedName] = wrappedTool;
-
-      // Keep a legacy alias so logging and older references still work
-      if (normalizedName !== action.name) {
-        agentkitTools[action.name] = wrappedTool;
-      }
     }
 
     console.log('✅ Converted', actions.length, 'AgentKit tools with proper schemas');
