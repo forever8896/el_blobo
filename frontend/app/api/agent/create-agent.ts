@@ -5,7 +5,7 @@ import { prepareAgentkitAndWalletProvider } from "./prepare-agentkit";
 import { twitterSearchTool } from "./twitter-tool";
 import { getTreasuryBalanceTool } from "./treasury-tool";
 import { tool } from "ai";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { z } from "zod";
 
 // Initialize xAI with GROK_API_KEY (which is the same as XAI_API_KEY)
 const xai = createXai({
@@ -296,45 +296,33 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
     // xAI Live Search is enabled via providerOptions, not as a separate tool
     const agentkitToolsRaw = getVercelAITools(agentkit);
 
-    // FIX: AgentKit v0.1.0 is built for AI SDK v4, but we're using v5
-    // AI SDK v5 requires JSON Schema, not Zod schemas
-    // Manually convert Zod schemas to JSON Schema for all AgentKit tools
-    console.log('🔧 Converting AgentKit tools for AI SDK v5 compatibility...');
+    // Wrap AgentKit tools for AI SDK v5
+    console.log('🔧 Wrapping AgentKit tools for AI SDK v5...');
 
     const agentkitTools: Record<string, any> = {};
     const actions = agentkit.getActions();
 
     for (const action of actions) {
-      // Convert Zod schema to JSON Schema for AI SDK v5
-      const jsonSchema = action.schema ? zodToJsonSchema(action.schema, {
-        target: 'openApi3',
-        $refStrategy: 'none',
-      }) : { type: 'object', properties: {}, additionalProperties: false };
+      // Use the original Zod schema from the action
+      const zodSchema = action.schema || z.object({});
 
       // Normalize the exposed tool name for the model (strip AgentKit prefix)
       const normalizedName = action.name === 'CustomActionProvider_create_project_onchain'
         ? 'create_project_onchain'
         : action.name;
 
-      const wrappedTool = tool({
+      // Create tool with explicit typing to avoid TS inference issues
+      agentkitTools[normalizedName] = tool({
         description: action.description,
-        parameters: jsonSchema as any,
+        parameters: zodSchema,
         execute: async (args: any) => {
           const result = await action.invoke(args);
           return result;
         },
-      });
-
-      agentkitTools[normalizedName] = wrappedTool;
+      } as any);
     }
 
-    console.log('✅ Converted', actions.length, 'AgentKit tools with proper schemas');
-
-    // DEBUG: Check if project tool schema is now populated
-    const projectTool = agentkitTools['create_project_onchain'];
-    if (projectTool) {
-      console.log('📋 Project tool schema (first 200 chars):', JSON.stringify(projectTool.parameters, null, 2).substring(0, 200));
-    }
+    console.log('✅ Wrapped', actions.length, 'AgentKit tools');
 
     // Add custom tools for treasury and other functionality
     const tools = {

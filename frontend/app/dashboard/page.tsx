@@ -422,16 +422,16 @@ export default function Dashboard() {
       </div>
 
       {/* Chat Container */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+      <div className="flex-1 flex items-center justify-center overflow-hidden relative">
         {/* Background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
           <div className="absolute top-20 left-10 w-64 h-64 border border-blob-cobalt rounded-full" />
           <div className="absolute bottom-20 right-10 w-96 h-96 border border-blob-mint rounded-none rotate-12" />
         </div>
 
-        <div className="w-full max-w-7xl h-[calc(100vh-200px)] flex flex-col bg-black/40 border-2 border-blob-cobalt shadow-[8px_8px_0px_#1E4CDD] z-0">
+        <div className="w-full h-full flex flex-col bg-black/40 z-0">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 font-mono">
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6 font-mono">
             {messages.length === 0 ? (
               <div className="relative h-full w-full">
                 {/* The Blob 3D Visualization - Background */}
@@ -486,10 +486,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                   )}
-
-                  <div className="space-y-2 text-sm text-gray-500 text-center mt-6 pointer-events-auto backdrop-blur-xl bg-black/20 px-6 py-3">
-                    <p>[ Ask about jobs | Check progress | Invite others ]</p>
-                  </div>
                 </div>
               </div>
             ) : (

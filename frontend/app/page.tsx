@@ -270,7 +270,7 @@ export default function Home() {
          {merchItems.map((item) => (
            <div
              key={item.id}
-             className="absolute opacity-100"
+             className="absolute opacity-100 z-30"
              style={{
                left: `${item.x}%`,
                top: '-150px',

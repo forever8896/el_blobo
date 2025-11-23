@@ -7,7 +7,9 @@
 import { z } from "zod";
 import { customActionProvider, type EvmWalletProvider } from "@coinbase/agentkit";
 import type { Address } from "viem";
-import { DEPLOYED_CONTRACTS } from "@/app/config/contracts";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { DEPLOYED_CONTRACTS, RONIN_SAIGON_TESTNET } from "@/app/config/contracts";
 import MainABI from "@/app/abis/Main.json";
 import VaultABI from "@/app/abis/NativeRewardVault.json";
 
@@ -104,7 +106,26 @@ export function blobRegistrationActionProvider() {
         const { userAddress, bigSponsor, smallSponsor } = args;
 
         const publicClient = await walletProvider.getPublicClient();
-        const walletClient = await walletProvider.getWalletClient();
+
+        // Use the owner wallet (from env) for on-chain registration
+        if (!process.env.OWNER_PRIVATE_KEY) {
+          throw new Error('OWNER_PRIVATE_KEY not configured - cannot register users on-chain');
+        }
+
+        const ownerAccount = privateKeyToAccount(process.env.OWNER_PRIVATE_KEY as Address);
+        const ownerWalletClient = createWalletClient({
+          account: ownerAccount,
+          chain: {
+            id: RONIN_SAIGON_TESTNET.chainId,
+            name: RONIN_SAIGON_TESTNET.name,
+            nativeCurrency: { name: "RON", symbol: "RON", decimals: 18 },
+            rpcUrls: {
+              default: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+              public: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+            },
+          },
+          transport: http(RONIN_SAIGON_TESTNET.rpcUrl),
+        });
 
         // Get registration price
         const registrationPrice = await publicClient.readContract({
@@ -119,13 +140,16 @@ export function blobRegistrationActionProvider() {
         const smallSponsorAddr = (smallSponsor as Address) || zeroAddress;
 
         // Send registration transaction
-        const hash = await walletClient.writeContract({
+        const hash = await ownerWalletClient.writeContract({
           address: DEPLOYED_CONTRACTS.main,
           abi: MainABI,
           functionName: "registerUser",
           args: [userAddress as Address, bigSponsorAddr, smallSponsorAddr],
           value: registrationPrice as bigint,
-          account: userAddress as Address,
+          account: ownerAccount,
+          gas: BigInt(500000),
+          maxFeePerGas: BigInt(22000000000),
+          maxPriorityFeePerGas: BigInt(20000000000),
         });
 
         // Wait for confirmation

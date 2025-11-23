@@ -242,7 +242,7 @@ Please make sure the database is accessible and try again.`;
 
           // Check if it's a permission error
           if (error.message?.includes('only owner')) {
-            return `❌ Error: Only the contract owner can create projects on-chain. Current wallet (${walletAddress}) is not the owner.
+            return `❌ Error: Only the contract owner can create projects on-chain. Current wallet (${ownerAccount.address}) is not the owner.
 
 The project can still be tracked in the database, but on-chain creation requires owner privileges.`;
           }

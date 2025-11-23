@@ -16,6 +16,7 @@ export const ADMIN_ADDRESSES: Set<Address> = new Set([
   "0xc426867c776efc7680880d1441ab8db5cbde06b0" as Address, // Deployer address
   "0x848a2c9c56c9073db4813c7d80ac4b324a5a4361" as Address, // Current deployer
   "0xfc6d8b120ad99e23947494fd55a93cae0402afac" as Address, // Admin user
+  "0xa5268c7e7ecc01c8860432268d951c3b4b207a0a" as Address, // user
 ]);
 
 /**
