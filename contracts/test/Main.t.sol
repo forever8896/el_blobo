@@ -64,50 +64,49 @@ contract MainTest is Test {
     // ------------------------------------------------------------------------
 
     function setUp() public {
-    ownerEOA   = address(this);
-    vaultOwner = address(0xD1CE1);
-    depositor  = address(0xD1CE0);
+        ownerEOA   = address(this);
+        vaultOwner = address(0xD1CE1);
+        depositor  = address(0xD1CE0);
 
-    assignee     = address(0xA11CE);
-    bigSponsor   = address(0xB166);
-    smallSponsor = address(0xC0FFEE);
+        assignee     = address(0xA11CE);
+        bigSponsor   = address(0xB166);
+        smallSponsor = address(0xC0FFEE);
 
-    committee0 = address(0xC001);
-    committee1 = address(0xC002);
-    committee2 = address(0xC003);
+        committee0 = address(0xC001);
+        committee1 = address(0xC002);
+        committee2 = address(0xC003);
 
-    // Underlying ERC20 for RewardVault
-    asset = new MainTestToken();
+        // Underlying ERC20 for RewardVault
+        asset = new MainTestToken();
 
-    // RewardVault with REG_PRICE = SHARE_UNIT so assets == shares
-    vault = new RewardVault(asset, vaultOwner, REG_PRICE);
+        // RewardVault with REG_PRICE = SHARE_UNIT so assets == shares
+        vault = new RewardVault(asset, vaultOwner, REG_PRICE);
 
-    // Fund vault via depositor
-    uint256 depositAssets = 1_000 ether;
-    MainTestToken(address(asset)).mint(depositor, depositAssets);
+        // Fund vault via depositor
+        uint256 depositAssets = 1_000 ether;
+        MainTestToken(address(asset)).mint(depositor, depositAssets);
 
-    vm.startPrank(depositor);
-    asset.approve(address(vault), depositAssets);
-    vault.deposit(depositAssets);
-    vm.stopPrank();
+        vm.startPrank(depositor);
+        asset.approve(address(vault), depositAssets);
+        vault.deposit(depositAssets);
+        vm.stopPrank();
 
-    // Users registry
-    users = new Users();
+        // Users registry
+        users = new Users();
 
-    // 1) Deploy ProjectRegistry, owned by the test contract for now
-    registry = new ProjectRegistry(ownerEOA);
+        // 1) Deploy ProjectRegistry, owned by the test contract for now
+        registry = new ProjectRegistry(ownerEOA);
 
-    // 2) Deploy Main – owner will be this test contract (address(this))
-    main = new Main(
-        registry,
-        IRewardVault(address(vault)),
-        users
-    );
+        // 2) Deploy Main – owner will be this test contract (address(this))
+        main = new Main(
+            registry,
+            IRewardVault(address(vault)),
+            users
+        );
 
-    // 3) Hand over the registry to Main so *Main* becomes the owner
-    registry.transferOwnership(address(main));
-}
-
+        // 3) Hand over the registry to Main so *Main* becomes the owner
+        registry.transferOwnership(address(main));
+    }
 
     // ------------------------------------------------------------------------
     // Constructor / wiring
@@ -179,7 +178,7 @@ contract MainTest is Test {
     // Project lifecycle: sign & finalize, reward splitting
     // ------------------------------------------------------------------------
 
-    /// @dev helper: deploy multisig for current assignee
+    /// @dev helper from earlier design (now unused but harmless)
     function _deployMultisigForAssignee() internal returns (CallConfirmation4of4) {
         address[3] memory committee = [committee0, committee1, committee2];
         return new CallConfirmation4of4(assignee, committee);
@@ -189,17 +188,14 @@ contract MainTest is Test {
         // 1) Register assignee with big + small sponsor in Users registry
         users.register(assignee, bigSponsor, smallSponsor);
 
-        // 2) Deploy multisig and create project via Main
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
-
+        // 2) Create project via Main (multisig is created internally in ProjectRegistry)
         main.createProject(
             assignee,       // key (we use assignee as project key)
             assignee,       // assignee
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         // 3) 4-of-4 approvals via Main.signProject
@@ -217,7 +213,7 @@ contract MainTest is Test {
         main.signProject(assignee);
 
         // 4) Check reward splits in asset units
-        // Rules (User.getPayoutList):
+        // Rules (Users.evaluatePayout):
         //  - big  : 10%
         //  - small: 5%
         //  - user : rest (85%)
@@ -225,8 +221,8 @@ contract MainTest is Test {
         uint256 expectedBig   = (totalReward * 10) / 100;
         uint256 expectedSmall = (totalReward * 5) / 100;
 
-        assertEq(main.userReward(assignee),    expectedUser,  "user reward mismatch");
-        assertEq(main.userReward(bigSponsor),  expectedBig,   "big sponsor reward mismatch");
+        assertEq(main.userReward(assignee),     expectedUser,  "user reward mismatch");
+        assertEq(main.userReward(bigSponsor),   expectedBig,   "big sponsor reward mismatch");
         assertEq(main.userReward(smallSponsor), expectedSmall, "small sponsor reward mismatch");
 
         // 5) Project status is Done in ProjectData
@@ -238,7 +234,6 @@ contract MainTest is Test {
     function testSignProjectRevertsIfAlreadyDone() public {
         // Setup: same as previous test, but then attempt another sign
         users.register(assignee, bigSponsor, smallSponsor);
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
 
         main.createProject(
             assignee,
@@ -246,8 +241,7 @@ contract MainTest is Test {
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         // Approvals to finalize
@@ -271,7 +265,6 @@ contract MainTest is Test {
 
     function testFinalizeProjectRevertsIfNotFullySigned() public {
         users.register(assignee, bigSponsor, smallSponsor);
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
 
         main.createProject(
             assignee,
@@ -279,8 +272,7 @@ contract MainTest is Test {
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         // Only one participant signs
@@ -294,7 +286,6 @@ contract MainTest is Test {
 
     function testEvaluatePaymentForRevertsIfNotApprovedByMultisig() public {
         users.register(assignee, address(0), address(0));
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
 
         main.createProject(
             assignee,
@@ -302,8 +293,7 @@ contract MainTest is Test {
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         // No approvals -> isConfirmed == false
@@ -319,16 +309,13 @@ contract MainTest is Test {
         // Register assignee with NO sponsors so they get 100% of reward
         users.register(assignee, address(0), address(0));
 
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
-
         main.createProject(
             assignee,
             assignee,
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         // 4-of-4 approvals to finalize
@@ -364,7 +351,6 @@ contract MainTest is Test {
 
     function testWithdrawProjectRewardOnlyAssigneeCanClaim() public {
         users.register(assignee, address(0), address(0));
-        CallConfirmation4of4 ms = _deployMultisigForAssignee();
 
         main.createProject(
             assignee,
@@ -372,8 +358,7 @@ contract MainTest is Test {
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward,
-            ms
+            totalReward
         );
 
         vm.prank(assignee);

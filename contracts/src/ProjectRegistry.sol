@@ -84,7 +84,8 @@ contract ProjectRegistry {
         uint64 beginDeadline,
         uint64 endDeadline,
         uint256 dbId,
-        uint256 totalReward
+        uint256 totalReward,
+        address[3] memory commiteeMembers
     ) external onlyOwner returns (ProjectData projectData) {
         require(key != address(0), "key = zero");
         require(address(projects[key].projectData) == address(0), "project exists");
@@ -102,18 +103,18 @@ contract ProjectRegistry {
         // Store in mapping
         RegisteredProject storage rp = projects[key];
         rp.projectData = projectData;
-
+        this.setProjectMultisig(assignee, commiteeMembers);
         emit ProjectRegistered(key, address(projectData));
     }
 
     /// @notice Set the multisig contract for an existing project
     /// @dev One-time operation per project; reverts if already set.
     /// @param key      The project key used in `projects` mapping
-    /// @param multisig The CallConfirmation4of4 instance designated for this project
-    function setProjectMultisig(address key, CallConfirmation4of4 multisig)
+    function setProjectMultisig(address key, address[3] memory commiteeMembers)
         external
         onlyOwner
     {
+        CallConfirmation4of4 multisig = new CallConfirmation4of4(key, commiteeMembers);
         require(key != address(0), "key = zero");
         require(address(multisig) != address(0), "multisig = zero");
 

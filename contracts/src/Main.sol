@@ -29,6 +29,8 @@ contract Main {
     /// @notice Per-user recorded reward (in *asset* units, not shares)
     mapping(address => uint256) public userReward;
 
+    address[3] commiteeMembers = [address(0x8Ec01FaD4383612bfc857F4d76F7f62D0fb4f46F), address(0x783CD4B360ACa13b1A5374aB8105932AF47d513E), address(0x526a4C270897FF531408cb1282Db9153517F7739)];
+    
     // ------------------------------------------------------------------------
     // Constructor & ownership
     // ------------------------------------------------------------------------
@@ -113,19 +115,17 @@ contract Main {
         uint64 beginDeadline,
         uint64 endDeadline,
         uint256 dbId,
-        uint256 totalReward,
-        CallConfirmation4of4 ms
-    ) external onlyOwner {
+        uint256 totalReward
+    ) external {
         projectRegistry.createProject(
             key,
             assignee,
             beginDeadline,
             endDeadline,
             dbId,
-            totalReward
+            totalReward,
+            commiteeMembers
         );
-
-        projectRegistry.setProjectMultisig(key, ms);
     }
 
     function signProject(address key) external {
