@@ -81,7 +81,7 @@ export const IntroChart = () => {
             let animationFrameId: number = 0;
             let candleIndex = 0;
             let lastTimestamp = performance.now();
-            const CANDLES_PER_SECOND = 4; // 4 new candles per second for smooth continuous flow
+            const CANDLES_PER_SECOND = 3.8; // 3.8 candles per second (5% slower for better timing)
             const MS_PER_CANDLE = 1000 / CANDLES_PER_SECOND;
             let accumulatedTime = 0;
 

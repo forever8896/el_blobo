@@ -107,13 +107,11 @@ export default function DepositPage() {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-8 text-center"
     >
-      <div className="text-7xl mb-4">🫧</div>
-
       <div className="max-w-2xl mx-auto space-y-6">
         <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-2xl md:text-3xl font-display font-bold text-blob-mint"
+          className="text-2xl md:text-3xl font-black font-mono text-blob-mint text-balance"
         >
           FINANCIAL ALIGNMENT REQUIRED
         </m.p>
@@ -122,7 +120,7 @@ export default function DepositPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-lg text-blob-peach font-mono"
+          className="text-lg text-blob-peach font-mono text-balance"
         >
           &quot;Skin in the game&quot; ensures quality.
         </m.p>
@@ -133,7 +131,7 @@ export default function DepositPage() {
           transition={{ delay: 0.6 }}
           className="bg-black border-2 border-blob-mint p-8 shadow-[8px_8px_0px_#1E4CDD] inline-block"
         >
-          <div className="text-6xl font-bold mb-2 text-blob-mint font-display">
+          <div className="text-6xl font-black mb-2 text-blob-mint font-mono">
             {registrationPriceFormatted ? `${registrationPriceFormatted} RON` : 'Loading...'}
           </div>
           <p className="text-sm text-blob-peach font-mono">

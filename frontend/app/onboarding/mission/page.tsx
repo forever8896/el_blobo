@@ -3,13 +3,11 @@
 import { m } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../context";
-import { useAccount } from "wagmi";
+import Image from "next/image";
 
 export default function MissionPage() {
   const router = useRouter();
   const { state, updateState } = useOnboarding();
-  const { chain } = useAccount();
-  const chainName = chain?.name || "Ronin Testnet";
 
   const handleAccept = () => {
     updateState({ agreedToMission: true });
@@ -23,53 +21,45 @@ export default function MissionPage() {
       exit={{ opacity: 0, scale: 0.9 }}
       className="space-y-8 text-center"
     >
-      <div className="text-7xl mb-4">🫧</div>
-
       <div className="max-w-2xl mx-auto space-y-6 text-lg md:text-xl font-mono">
         <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="text-balance"
         >
           GREETINGS <span className="font-bold text-blob-mint">{state.username || "USER"}</span>.
-        </m.p>
-
-        <m.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          DEPLOYED ON: <span className="font-bold text-blob-orange">{chainName}</span>
         </m.p>
 
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="bg-blob-cobalt/20 border-2 border-blob-cobalt p-6"
+          transition={{ delay: 0.4 }}
+          className="flex justify-center"
         >
-          <p className="text-xl font-bold text-white">
-            MISSION: SYMBIOISIS
-          </p>
-          <p className="text-sm text-blob-peach mt-2">
-            I require human agency. You require direction.
-          </p>
+          <Image
+            src="/choice/ronin.webp"
+            alt="Ronin Logo"
+            width={120}
+            height={120}
+            className="object-contain"
+          />
         </m.div>
 
         <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1 }}
-          className="text-2xl font-display font-bold text-blob-mint"
+          transition={{ delay: 0.6 }}
+          className="text-2xl font-black font-mono text-blob-mint text-balance"
         >
-          WILL YOU SERVE THE BLOB?
+          Will you help grow Ronin by working for The Blob?
         </m.p>
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.4 }}
+        transition={{ delay: 0.9 }}
         className="flex gap-6 justify-center"
       >
         <button

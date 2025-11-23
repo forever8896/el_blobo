@@ -87,7 +87,7 @@ export default function Home() {
       .addLabel("etfs")
       .to(introText1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 }, "etfs")
       .to(introImage1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 }, "etfs")
-      .to({}, { duration: 0.5 }) // Hold for 0.5s more
+      .to({}, { duration: 1.0 }) // Hold for 1.0s
       .to(introText1Ref.current, { opacity: 0, duration: fadeOutDuration })
       .to(introImage1Ref.current, { opacity: 0, duration: fadeOutDuration }, "<")
 
@@ -95,7 +95,7 @@ export default function Home() {
       .addLabel("saylor")
       .to(introText2Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }, "saylor")
       .to(introImage2Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }, "saylor")
-      .to({}, { duration: 0.5 }) // Hold for 0.5s more
+      .to({}, { duration: holdDuration }) // Hold for full duration
       .to(introText2Ref.current, { opacity: 0, duration: fadeOutDuration })
       .to(introImage2Ref.current, { opacity: 0, duration: fadeOutDuration }, "<")
       
@@ -206,10 +206,10 @@ export default function Home() {
        {/* Intro Text Container - Centered */}
        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
 
-          {/* 1. ETFs Group - Image top half, Text bottom half */}
+          {/* 1. ETFs Group - Image center, Text bottom */}
           <div className="absolute inset-0 flex flex-col items-center justify-between w-full">
-                {/* Image Top Half */}
-                <div ref={introImage1Ref} className="absolute top-[15%] left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
+                {/* Image Center */}
+                <div ref={introImage1Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
                     <Image
                         src="/intro/etfs.jpg"
                         alt="ETF News"
@@ -219,20 +219,16 @@ export default function Home() {
                         priority
                     />
                 </div>
-                {/* Text Bottom Half */}
-                <p ref={introText1Ref} className="absolute bottom-[25%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+                {/* Text Bottom */}
+                <p ref={introText1Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
                     We&apos;ve tried ETFs...
                 </p>
           </div>
 
-          {/* 2. Saylor Group - Text top half, Image bottom half */}
+          {/* 2. Saylor Group - Image center, Text bottom */}
           <div className="absolute inset-0 flex flex-col items-center justify-between w-full">
-                {/* Text Top Half */}
-                <p ref={introText2Ref} className="absolute top-[25%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
-                    We tried Michael Saylor
-                </p>
-                {/* Image Bottom Half */}
-                <div ref={introImage2Ref} className="absolute bottom-[15%] left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
+                {/* Image Center */}
+                <div ref={introImage2Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
                     <Image
                         src="/intro/saylor.jpeg"
                         alt="Michael Saylor"
@@ -242,19 +238,30 @@ export default function Home() {
                         priority
                     />
                 </div>
+                {/* Text Bottom */}
+                <p ref={introText2Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+                    We tried Michael Saylor
+                </p>
           </div>
 
-          <p ref={introText3Ref} className={INTRO_TEXT_CLASSES}>
-            We created enough crypto merch to cloth Africa...
+          {/* 3. Merch Text - Bottom */}
+          <p ref={introText3Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+            We created enough merch to clothe Africa...
           </p>
-          <p ref={introText4Ref} className={INTRO_TEXT_CLASSES}>
+
+          {/* 4. Token Price Text - Bottom */}
+          <p ref={introText4Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
             But the token price kept dropping...
           </p>
-          <p ref={introText5Ref} className={INTRO_TEXT_CLASSES}>
-            Things got so bad...
+
+          {/* 5. Things Got Bad - Center Center */}
+          <p ref={introText5Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+            Things have got so bad...
           </p>
-          <p ref={introText6Ref} className={INTRO_TEXT_CLASSES}>
-            a new lifeform chose to incarnate to rescue the market
+
+          {/* 6. New Lifeform - Center Center */}
+          <p ref={introText6Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-6xl leading-relaxed z-30">
+            a new lifeform has incarnated to rescue the market
           </p>
        </div>
 
@@ -312,7 +319,7 @@ export default function Home() {
           {/* McDonald's Path */}
           <Link
             href="/start/choice?path=mcdonalds"
-            className="group relative w-80 h-80 overflow-hidden rounded-xl border-8 border-black hover:border-gray-800 transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl"
+            className="group relative w-80 h-80 overflow-hidden rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl"
           >
             <Image
               src="/choice/mcdonalds.jpeg"
@@ -332,7 +339,7 @@ export default function Home() {
           {/* Grow Ronin Path */}
           <Link
             href="/onboarding/identity"
-            className="group relative w-80 h-80 overflow-hidden rounded-xl border-8 border-black hover:border-gray-800 transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl"
+            className="group relative w-80 h-80 overflow-hidden rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl backdrop-blur-xl"
           >
             <Image
               src="/choice/ronin.webp"
