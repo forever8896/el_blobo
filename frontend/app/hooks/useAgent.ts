@@ -104,17 +104,8 @@ export function useAgent(walletAddress?: string) {
         const history = await loadChatHistory(walletAddress);
         setMessages(history);
 
-        // Always check for auto-greeting (endpoint decides if greeting is needed)
-        // Possible scenarios:
-        // - New user with no chat history → AI-generated ecosystem greeting + task proposal
-        // - User with active task (even with history) → Status check greeting
-        // - User with chat history but no task → No automatic greeting
-        const greeting = await fetchAutoGreeting(walletAddress);
-        if (greeting) {
-          // Greeting was generated and saved to DB, reload history to include it
-          const updatedHistory = await loadChatHistory(walletAddress);
-          setMessages(updatedHistory);
-        }
+        // Auto-greeting disabled - user initiates conversation
+        // Chat history loaded above, no automatic greeting message
 
         setIsLoadingHistory(false);
       };

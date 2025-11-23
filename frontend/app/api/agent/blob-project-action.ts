@@ -7,7 +7,9 @@
 import { z } from "zod";
 import { customActionProvider, type EvmWalletProvider } from "@coinbase/agentkit";
 import type { Address } from "viem";
-import { DEPLOYED_CONTRACTS } from "@/app/config/contracts";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { DEPLOYED_CONTRACTS, RONIN_SAIGON_TESTNET } from "@/app/config/contracts";
 import MainABI from "@/app/abis/Main.json";
 
 /**
@@ -118,9 +120,15 @@ This might be a tool calling issue. The project details are ready but couldn't b
           }
 
           const dbData = await dbResponse.json();
-          dbId = dbData.project.id;
+          const dbUUID = dbData.project.id; // This is a UUID string
 
-          console.log('✅ Project created in database with ID:', dbId);
+          // Convert UUID to numeric ID for on-chain storage
+          // We'll use a hash of the UUID as a uint256
+          const uuidHash = BigInt('0x' + dbUUID.replace(/-/g, '').substring(0, 16));
+          dbId = Number(uuidHash);
+
+          console.log('✅ Project created in database with UUID:', dbUUID);
+          console.log('✅ Converted to numeric dbId:', dbId);
         } catch (dbError: any) {
           console.error('❌ Failed to create project in database:', dbError);
           return `❌ Failed to create project in database: ${dbError.message}
@@ -129,10 +137,29 @@ Please make sure the database is accessible and try again.`;
         }
 
         const publicClient = await walletProvider.getPublicClient();
-        const walletClient = await walletProvider.getWalletClient();
 
-        // Get the wallet's address
-        const [walletAddress] = await walletClient.getAddresses();
+        // Use the owner wallet (from env) for on-chain project creation
+        // Only the contract owner can call createProject
+        if (!process.env.OWNER_PRIVATE_KEY) {
+          throw new Error('OWNER_PRIVATE_KEY not configured - cannot create projects on-chain');
+        }
+
+        const ownerAccount = privateKeyToAccount(process.env.OWNER_PRIVATE_KEY as Address);
+        const ownerWalletClient = createWalletClient({
+          account: ownerAccount,
+          chain: {
+            id: RONIN_SAIGON_TESTNET.chainId,
+            name: RONIN_SAIGON_TESTNET.name,
+            nativeCurrency: { name: "RON", symbol: "RON", decimals: 18 },
+            rpcUrls: {
+              default: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+              public: { http: [RONIN_SAIGON_TESTNET.rpcUrl] },
+            },
+          },
+          transport: http(RONIN_SAIGON_TESTNET.rpcUrl),
+        });
+
+        console.log('🔑 Using owner wallet:', ownerAccount.address);
 
         // Convert budget from RON to wei
         const budgetWei = BigInt(Math.floor(budgetRON * 1e18));
@@ -150,8 +177,8 @@ Please make sure the database is accessible and try again.`;
         console.log('⛓️  Step 2: Registering project on blockchain...');
 
         try {
-          // Create project on-chain
-          const hash = await walletClient.writeContract({
+          // Create project on-chain using owner wallet
+          const hash = await ownerWalletClient.writeContract({
             address: DEPLOYED_CONTRACTS.main,
             abi: MainABI,
             functionName: "createProject",
@@ -160,11 +187,14 @@ Please make sure the database is accessible and try again.`;
               assigneeAddress as Address,       // Assignee (who will work on it)
               BigInt(beginDeadline),           // Begin deadline (uint64)
               BigInt(endDeadline),             // End deadline (uint64)
-              BigInt(dbId),                    // Database ID
+              BigInt(dbId),                    // Database ID (converted from UUID)
               budgetWei,                       // Total reward in wei
               zeroAddress                       // Multisig (not implemented yet)
             ],
-            account: walletAddress,
+            account: ownerAccount,
+            gas: BigInt(500000),
+            maxFeePerGas: BigInt(22000000000),
+            maxPriorityFeePerGas: BigInt(20000000000),
           });
 
           console.log('✅ Project created on-chain:', hash);

@@ -394,13 +394,24 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
 
       const lastAssistantMsg = messages.filter(m => m.role === 'assistant').pop();
       if (lastAssistantMsg && walletAddress) {
+        console.log('🔍 Last assistant message (first 300 chars):', lastAssistantMsg.content?.substring(0, 300));
+
         const titleMatch = lastAssistantMsg.content?.match(/\*\*Title[:\s]+([^\n*]+)/i) ||
-                          lastAssistantMsg.content?.match(/Title[:\s]+([^\n]+)/i);
+                          lastAssistantMsg.content?.match(/Title[:\s]+([^\n]+)/i) ||
+                          lastAssistantMsg.content?.match(/\*\*([^*]+Infographic[^*]*)\*\*/i);
         const descMatch = lastAssistantMsg.content?.match(/\*\*Description[:\s]+([^\n*]+)/i) ||
                          lastAssistantMsg.content?.match(/Description[:\s]+([^\n]+)/i);
-        const budgetMatch = lastAssistantMsg.content?.match(/Budget[:\s]+(\d+\.?\d*)\s*RON/i);
+        const budgetMatch = lastAssistantMsg.content?.match(/Budget[:\s]+(\d+\.?\d*)\s*RON/i) ||
+                           lastAssistantMsg.content?.match(/(\d+\.?\d*)\s*RON/i);
         const durationMatch = lastAssistantMsg.content?.match(/Timeline[:\s]+(\d+)\s*days?/i) ||
-                             lastAssistantMsg.content?.match(/Deadline[:\s]+(\d+)\s*days?/i);
+                             lastAssistantMsg.content?.match(/Deadline[:\s]+(\d+)\s*days?/i) ||
+                             lastAssistantMsg.content?.match(/(\d+)\s*days/i);
+
+        console.log('🔍 Pattern matches:', {
+          titleMatch: titleMatch?.[1]?.substring(0, 50),
+          budgetMatch: budgetMatch?.[1],
+          durationMatch: durationMatch?.[1]
+        });
 
         if (titleMatch && budgetMatch) {
           const title = titleMatch[1].trim();
