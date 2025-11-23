@@ -135,7 +135,7 @@ export function useRegistration(): RegistrationState & RegistrationActions {
         functionName: "registerUser",
         args: [address, bigSponsorAddr, smallSponsorAddr],
         value: registrationPrice,
-        gas: BigInt(500000), // Increased for contract deployment
+        gas: BigInt(1000000), // Increased for contract deployment
         maxFeePerGas: BigInt(22000000000), // 22 gwei
         maxPriorityFeePerGas: BigInt(20000000000), // 20 gwei
       });
