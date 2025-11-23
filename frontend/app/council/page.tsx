@@ -1,4 +1,4 @@
-import LLMJudges from '@/components/LLMJudges';
+import LLMJudges from '@/app/components/LLMJudges';
 
 export default function CouncilPage() {
   return (

@@ -204,8 +204,10 @@ const LLMJudges = forwardRef(({ initialAgents }, ref) => {
     const height = containerRef.current.clientHeight;
 
     const scene = new THREE.Scene();
-    // Use very subtle fog to allow deep reflections to be visible
-    scene.fog = new THREE.FogExp2(0x000000, 0.01); 
+    // Set a background color to verify renderer is working
+    scene.background = new THREE.Color(0x111111);
+    // Remove fog for now to debug visibility
+    // scene.fog = new THREE.FogExp2(0x000000, 0.01); 
     
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
     
@@ -236,7 +238,7 @@ const LLMJudges = forwardRef(({ initialAgents }, ref) => {
 
     // Lighting - MASSIVE FRONT LIGHTS SETUP
     // Increased ambient to ensure nothing is black
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6); 
+    const ambient = new THREE.AmbientLight(0xffffff, 2.0); 
     scene.add(ambient);
 
     // Massive Front Directional Light (The "Studio Flood")

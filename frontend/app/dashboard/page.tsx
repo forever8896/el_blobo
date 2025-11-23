@@ -10,6 +10,9 @@ import WorkSubmission from "../components/WorkSubmission";
 import AICouncil from "../components/AICouncil";
 import { useAccount, useDisconnect } from "wagmi";
 import { TantoConnectButton } from "@sky-mavis/tanto-widget";
+import dynamic from "next/dynamic";
+
+const TheBlob = dynamic(() => import('../components/TheBlob'), { ssr: false });
 
 interface ActiveJob {
   id: string;
@@ -21,12 +24,42 @@ interface ActiveJob {
   status: 'active' | 'submitted' | 'evaluating' | 'completed';
 }
 
+// Funny crypto-themed thinking messages
+const THINKING_MESSAGES = [
+  "Checking portfolio... closing it down",
+  "Building a L4 on L3 on a L2...",
+  "Deploying to mainnet (just kidding, testnet)",
+  "Waiting for gas fees to drop...",
+  "Reading the whitepaper (actually just the memes)",
+  "Bridging to another chain...",
+  "Staking my reputation on this...",
+  "Consulting the oracle...",
+  "Calculating APY (Actually Probably Yolo)",
+  "Checking if we're still early...",
+  "Running it on devnet first...",
+  "Compiling smart contract... found 0 bugs (sus)",
+  "Asking the DAO for permission...",
+  "Waiting for block confirmation...",
+  "Optimizing for gas efficiency...",
+  "Cross-chain messaging in progress...",
+  "Generating wallet seed phrase... wrote it down this time",
+  "Checking on-chain activity...",
+  "Analyzing liquidity pools...",
+  "Verifying on Etherscan...",
+  "Summoning liquidity from the void...",
+  "Calculating impermanent loss...",
+  "Aping into this request...",
+  "Checking for rug pulls...",
+  "WAGMI... probably"
+];
+
 export default function Dashboard() {
   const router = useRouter();
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [thinkingMessage, setThinkingMessage] = useState("");
 
   // Wagmi hooks for wallet connection in header
   const { address: connectedWallet, isConnected } = useAccount();
@@ -121,6 +154,14 @@ export default function Dashboard() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Pick a random thinking message when blob starts thinking
+  useEffect(() => {
+    if (isThinking) {
+      const randomMessage = THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)];
+      setThinkingMessage(randomMessage);
+    }
+  }, [isThinking]);
 
   const onSendMessage = async () => {
     if (!input.trim() || isThinking) return;
@@ -252,15 +293,9 @@ export default function Dashboard() {
       <div className="border-b-2 border-blob-cobalt bg-blob-violet z-50 px-8 py-4 relative">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-6">
-            <pre className="text-blob-mint text-2xl font-mono font-bold drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-{`█▓▒░ BLOB ░▒▓█`}
-            </pre>
-            {userData && (
-              <div className="font-mono">
-                <p className="text-xs text-blob-peach">&gt; OPERATOR:</p>
-                <p className="text-lg text-white font-bold">{userData.username}</p>
-              </div>
-            )}
+            <div className="text-blob-mint text-2xl font-mono font-bold drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+              The Blob
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {/* Treasury Vault Info - Hover to expand */}
@@ -361,12 +396,14 @@ export default function Dashboard() {
 
             {/* Wallet Connect Button */}
             <div className="wallet-connect-header">
-              {isConnected && connectedWallet ? (
+              {isConnected && connectedWallet && userData ? (
                 <div className="flex items-center gap-3">
                   <div className="text-right font-mono text-xs">
-                    <p className="text-blob-peach">LINKED_WALLET</p>
-                    <p className="text-blob-mint">
-                      {connectedWallet.slice(0, 6)}...{connectedWallet.slice(-4)}
+                    <p className="text-white">
+                      Logged in as <span className="text-blob-mint font-bold">{userData.username}</span>
+                    </p>
+                    <p className="text-blob-peach">
+                      with wallet {connectedWallet.slice(0, 6)}...{connectedWallet.slice(-4)}
                     </p>
                   </div>
                   <button
@@ -396,60 +433,63 @@ export default function Dashboard() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 font-mono">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full space-y-8">
-                <pre className="text-blob-mint text-4xl float">
-{`
-    ╔═════════╗
-    ║  BLOB   ║
-    ║ ONLINE  ║
-    ╚═════════╝
-`}
-                </pre>
-                <p className="text-xl text-blob-peach">
-                  &gt; SYSTEM READY. AWAITING INPUT...
-                </p>
+              <div className="relative h-full w-full">
+                {/* The Blob 3D Visualization - Background */}
+                <div className="absolute inset-0">
+                  <TheBlob
+                    initialMode="idle"
+                    initialZoom={3.8}
+                    colors={{ primary: '#4FFFB0', secondary: '#1E4CDD' }}
+                    highEnd={true}
+                    isDark={true}
+                    interactionsEnabled={true}
+                    autoEmerge={true}
+                  />
+                </div>
 
-                {/* Treasury Status Welcome Card */}
-                {treasuryInfo && !isTreasuryLoading && (
-                  <div className="bg-black/60 border-2 border-blob-cobalt p-6 max-w-2xl">
-                    <div className="font-mono space-y-4">
-                      <div className="text-center border-b border-blob-cobalt pb-3">
-                        <h3 className="text-blob-mint font-bold text-lg">TREASURY STATUS</h3>
-                        <p className="text-xs text-gray-400 mt-1">Live on-chain data • Ronin Saigon Testnet</p>
-                      </div>
+                {/* Treasury Status - Overlay with Blur */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  {treasuryInfo && !isTreasuryLoading && (
+                    <div className="backdrop-blur-2xl bg-black/70 p-6 max-w-2xl pointer-events-auto">
+                      <div className="font-mono space-y-4">
+                        <div className="text-center border-b border-blob-cobalt pb-3">
+                          <h3 className="text-blob-mint font-bold text-lg">TREASURY STATUS</h3>
+                          <p className="text-xs text-blob-peach mt-1">Live on-chain data • Ronin Saigon Testnet</p>
+                        </div>
 
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <p className="text-xs text-gray-400">Total Assets</p>
-                          <p className="text-white font-bold text-xl">{treasuryInfo.totalAssets.toFixed(2)}</p>
-                          <p className="text-xs text-blob-mint">RON</p>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <p className="text-xs text-blob-peach">Total Assets</p>
+                            <p className="text-white font-bold text-xl">{treasuryInfo.totalAssets.toFixed(2)}</p>
+                            <p className="text-xs text-blob-mint">RON</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-blob-peach">Available</p>
+                            <p className="text-blob-green font-bold text-xl">{treasuryInfo.availableAssets.toFixed(2)}</p>
+                            <p className="text-xs text-blob-green">RON</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-blob-peach">Allocated</p>
+                            <p className="text-blob-orange font-bold text-xl">{treasuryInfo.allocatedAssets.toFixed(2)}</p>
+                            <p className="text-xs text-blob-orange">RON</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-400">Available</p>
-                          <p className="text-blob-green font-bold text-xl">{treasuryInfo.availableAssets.toFixed(2)}</p>
-                          <p className="text-xs text-blob-green">RON</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400">Allocated</p>
-                          <p className="text-blob-orange font-bold text-xl">{treasuryInfo.allocatedAssets.toFixed(2)}</p>
-                          <p className="text-xs text-blob-orange">RON</p>
-                        </div>
-                      </div>
 
-                      <div className="border-t border-blob-cobalt pt-3">
-                        <p className="text-xs text-gray-400 text-center mb-2">
-                          When THE BLOB assigns you jobs, all budgets come from this treasury.
-                        </p>
-                        <p className="text-xs text-center text-blob-peach">
-                          💡 Hover over the vault badge in the header for more details
-                        </p>
+                        <div className="border-t border-blob-cobalt pt-3">
+                          <p className="text-xs text-white text-center mb-2">
+                            When THE BLOB assigns you jobs, all budgets come from this treasury.
+                          </p>
+                          <p className="text-xs text-center text-blob-peach">
+                            💡 Hover over the vault badge in the header for more details
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="space-y-2 text-sm text-gray-500 text-center">
-                  <p>[ Ask about jobs | Check progress | Invite others ]</p>
+                  <div className="space-y-2 text-sm text-gray-500 text-center mt-6 pointer-events-auto backdrop-blur-xl bg-black/20 px-6 py-3">
+                    <p>[ Ask about jobs | Check progress | Invite others ]</p>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -464,8 +504,7 @@ export default function Dashboard() {
                 >
                   {msg.sender === "agent" && (
                     <div className="flex items-center gap-2 mb-2 text-blob-mint">
-                      <span className="text-lg">█▓▒░</span>
-                      <span className="text-xs font-bold">THE BLOB</span>
+                      <span className="text-sm font-bold">THE BLOB</span>
                     </div>
                   )}
                   <div
@@ -496,8 +535,8 @@ export default function Dashboard() {
 
             {isThinking && (
               <div className="flex items-center gap-3 text-blob-mint p-4">
-                <span className="text-xl animate-pulse">█▓▒░</span>
-                <span className="text-sm">THE BLOB PROCESSING<span className="cursor-blink">_</span></span>
+                <span className="text-sm font-bold">THE BLOB</span>
+                <span className="text-sm animate-pulse">{thinkingMessage}<span className="cursor-blink">_</span></span>
               </div>
             )}
 
@@ -506,15 +545,12 @@ export default function Dashboard() {
 
           {/* Input Area */}
           <div className="border-t-2 border-blob-cobalt bg-blob-violet p-4">
-            <div className="flex gap-4 items-end">
+            <div className="flex gap-4 items-center">
               <div className="flex-1">
-                <label className="text-xs text-blob-peach font-mono mb-2 block">
-                  &gt; COMMAND INPUT:
-                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 bg-black border-2 border-blob-cobalt text-white font-mono focus:outline-none focus:border-blob-mint focus:shadow-[4px_4px_0px_#4FFFB0] transition-all"
-                  placeholder="Enter command..."
+                  placeholder="Chat to The Blob..."
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && onSendMessage()}
