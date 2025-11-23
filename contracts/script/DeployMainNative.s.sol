@@ -17,7 +17,7 @@ contract DeployMainNative is Script {
         uint256 deployerPk        = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer          = vm.envAddress("DEPLOYER_ADDRESS");
         address registryOwner     = vm.envAddress("REGISTRY_OWNER");
-        address vaultOwner        = vm.envAddress("VAULT_OWNER"); // kept for parity, even if NativeRewardVault owns itself
+        address vaultOwner        = vm.envAddress("VAULT_OWNER");
         uint256 registrationPrice = vm.envUint("REGISTRATION_PRICE");
 
         vm.startBroadcast(deployerPk);
@@ -26,22 +26,33 @@ contract DeployMainNative is Script {
         // 1. Deploy ProjectRegistry
         // ---------------------------------------------------------------------
         ProjectRegistry registry = new ProjectRegistry(registryOwner);
-
         console2.log("ProjectRegistry deployed at:", address(registry));
 
-        // Optional sanity check
+        // Optional sanity check that registry owner is the deployer
         require(registryOwner == deployer, "REGISTRY_OWNER != DEPLOYER_ADDRESS");
 
         // ---------------------------------------------------------------------
-        // 2. Deploy NativeRewardVault with initial funding
+        // 2. Deploy NativeRewardVault (no value sent to constructor)
         // ---------------------------------------------------------------------
-        // Send 1 ETH as initial vault funding (adjust if you want different amount)
         // NativeRewardVault constructor:
-        //   constructor(uint256 _registrationPrice) payable
-        NativeRewardVault vault = new NativeRewardVault{value: 1 ether}(registrationPrice);
+        //   constructor(address _vaultOwner, uint256 _registrationPrice)
+        NativeRewardVault vault = new NativeRewardVault(
+            vaultOwner,
+            registrationPrice
+        );
 
         console2.log("NativeRewardVault deployed at:", address(vault));
-        console2.log("Initial vault balance:", address(vault).balance);
+
+        // // Optionally pre-fund the vault with native token and mint shares
+        // // This sends native token from `deployer` to the vault and mints shares
+        // uint256 initialFunding = 1 ether;
+        // if (initialFunding > 0) {
+        //     vault.deposit{value: initialFunding}();
+        //     console2.log("Vault initial funding (native):", initialFunding);
+        // }
+
+        console2.log("Vault native balance:", address(vault).balance);
+        console2.log("Vault unallocatedShares:", vault.unallocatedShares());
 
         // ---------------------------------------------------------------------
         // 3. Deploy Users registry
@@ -78,6 +89,7 @@ contract DeployMainNative is Script {
         console2.log("Main:              ", address(main));
         console2.log("Registration Price:", registrationPrice, "wei");
         console2.log("Vault Balance:     ", address(vault).balance, "wei");
+        console2.log("Vault Unallocated: ", vault.unallocatedShares(), "shares");
 
         vm.stopBroadcast();
     }

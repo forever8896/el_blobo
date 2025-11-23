@@ -45,7 +45,7 @@
     "@types/react": "19.2.6",
     "@types/react-dom": "19.2.3",
     "dotenv": "^17.2.3",
-    "eslint": "^8",
+    "eslint": "^9.39.1",
     "eslint-config-next": "16.0.3",
     "patch-package": "^8.0.1",
     "postcss": "^8",

@@ -10,9 +10,6 @@ contract Users {
     /// @notice Mapping from main user address to its User contract
     mapping(address => User) public userContracts;
 
-    /// @notice List of all registered user addresses
-    address[] public allUsers;
-
     event UserRegistered(
         address indexed user,
         address indexed userContract,
@@ -39,7 +36,6 @@ contract Users {
         User u = new User(userAddr, bigSponsor, smallSponsor);
 
         userContracts[userAddr] = u;
-        allUsers.push(userAddr);
 
         emit UserRegistered(userAddr, address(u), bigSponsor, smallSponsor);
     }
@@ -61,17 +57,6 @@ contract Users {
         User u = userContracts[account];
         require(address(u) != address(0), "user not registered");
         return u.getSponsors();
-    }
-
-    /// @notice Number of registered users
-    function getUserCount() external view returns (uint256) {
-        return allUsers.length;
-    }
-
-    /// @notice Get user address by index
-    function getUserAt(uint256 index) external view returns (address) {
-        require(index < allUsers.length, "index out of bounds");
-        return allUsers[index];
     }
 
     /// @notice Evaluate payout for a given user and amount by delegating to User.getPayoutList
