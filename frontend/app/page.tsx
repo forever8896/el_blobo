@@ -40,7 +40,7 @@ export default function Home() {
   const text2Ref = useRef<HTMLParagraphElement>(null);
 
   // Constant styles for consistency - same font and size for all intro text
-  const INTRO_TEXT_CLASSES = "text-white text-2xl font-mono tracking-widest text-center opacity-0 absolute px-8 max-w-5xl leading-relaxed z-30";
+  const INTRO_TEXT_CLASSES = "text-white text-3xl font-mono tracking-widest text-center opacity-0 absolute px-8 max-w-5xl leading-relaxed z-30 text-balance";
 
   // Generate falling merch items
   const merchImages = ['/intro/merch1.png', '/intro/merch2.png', '/intro/merch3.png'];
@@ -100,7 +100,6 @@ export default function Home() {
       .to(introImage2Ref.current, { opacity: 0, duration: fadeOutDuration }, "<")
       
       // 3. Merch + Falling T-Shirts
-      .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .call(() => {
         // Trigger falling merch animation
         if (fallingMerchRef.current) {
@@ -117,13 +116,14 @@ export default function Home() {
           });
         }
       }, null, "+=0.2")
+      .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .to(introText3Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
 
       // 4. Token Price + Extended pause to show chart crash
       .to(introText4Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .to(introText4Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
       .addLabel("chartCrash")
-      .to({}, { duration: 2.0 }) // 2 second pause to watch chart drop further
+      .to({}, { duration: 1.0 }) // 2 second pause to watch chart drop further
 
       // 5. Things Got So Bad
       .to(introText5Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })

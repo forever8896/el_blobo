@@ -213,7 +213,7 @@ export default function DepositPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="space-y-4"
+          className="space-y-4 flex flex-col items-center"
         >
           <TantoConnectButton>
             {({ showModal }) => (

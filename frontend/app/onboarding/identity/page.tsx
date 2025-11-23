@@ -27,11 +27,10 @@ export default function IdentityPage() {
       className="space-y-8"
     >
       <div className="text-center">
-        <div className="text-7xl mb-4">🫧</div>
-        <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 text-blob-mint">
+        <h2 className="text-3xl md:text-4xl font-black font-mono mb-4 text-blob-mint text-balance">
           WHAT'S YOUR NAME?
         </h2>
-        <p className="text-lg text-blob-peach font-mono">Careful, this will be public</p>
+        <p className="text-lg text-blob-peach font-mono text-balance">Careful, this will be public</p>
       </div>
 
       <div className="max-w-md mx-auto">
