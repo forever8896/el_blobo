@@ -209,12 +209,12 @@ export default function Home() {
           {/* 1. ETFs Group - Image center, Text bottom */}
           <div className="absolute inset-0 flex flex-col items-center justify-between w-full">
                 {/* Image Center */}
-                <div ref={introImage1Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
+                <div ref={introImage1Ref} className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 z-40">
                     <Image
                         src="/intro/etfs.jpg"
                         alt="ETF News"
-                        width={600}
-                        height={400}
+                        width={900}
+                        height={700}
                         className="rounded-lg"
                         priority
                     />
@@ -245,13 +245,13 @@ export default function Home() {
           </div>
 
           {/* 3. Merch Text - Bottom */}
-          <p ref={introText3Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
-            We created enough merch to clothe Africa...
+          <p ref={introText3Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-6xl leading-relaxed z-30">
+            We made millions of black t-shirts.
           </p>
 
           {/* 4. Token Price Text - Bottom */}
           <p ref={introText4Ref} className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
-            But the token price kept dropping...
+            But market still go down.
           </p>
 
           {/* 5. Things Got Bad - Center Center */}
@@ -360,7 +360,7 @@ export default function Home() {
 
       <div className="absolute bottom-8 right-8 z-50">
         <Link
-          href="/start/intro"
+          href="/onboarding/identity"
           className="text-white/40 hover:text-white font-mono text-xs uppercase tracking-[0.2em] transition-all duration-500"
         >
           Skip

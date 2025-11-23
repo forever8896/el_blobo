@@ -208,7 +208,9 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
         }
 
         // DETECT LYING: If agent says project created without tool call
-        if (text && !toolCalls?.some((tc: any) => tc.toolName === 'CustomActionProvider_create_project_onchain')) {
+        if (text && !toolCalls?.some((tc: any) =>
+          tc.toolName === 'create_project_onchain' || tc.toolName === 'CustomActionProvider_create_project_onchain'
+        )) {
           if (text.toLowerCase().includes('project created') ||
               text.toLowerCase().includes('setting up') ||
               text.toLowerCase().includes("i'm registering")) {
@@ -265,211 +267,7 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
       step.content?.some((c: any) => c.type === 'tool-error' || (c.output && JSON.stringify(c.output).includes('ZodError')))
     );
 
-    // GROK 4.1 WORKAROUND: Extract parameters from XML and execute directly
-    // Since Grok outputs XML but AgentKit can't parse it, we do it manually
-    // Check both result.text and steps for XML parameters
-    const fullText = text + '\n' + (result.steps?.map((s: any) =>
-      s.content?.map((c: any) => c.text || c.type).join(' ')
-    ).join('\n') || '');
-
-    console.log('🔍 Checking for XML parameters in:', {
-      resultTextLength: text?.length || 0,
-      stepsCount: result.steps?.length || 0,
-      hasXML: fullText.includes('<parameter name=')
-    });
-
-    if (fullText.includes('<parameter name=')) {
-      console.log('📋 Grok 4.1 XML parameters detected - executing manually');
-
-      const parseParam = (name: string, textToParse: string) => {
-        const match = textToParse.match(new RegExp(`<parameter name="${name}">([^<]+)</parameter>`, 'i'));
-        return match ? match[1].trim() : '';
-      };
-
-      // Parse from fullText (includes steps)
-      const projectKey = parseParam('project_key', fullText) || parseParam('projectKey', fullText);
-      const assigneeAddress = parseParam('assignee_address', fullText) || parseParam('assigneeAddress', fullText);
-      const title = parseParam('title', fullText);
-      const description = parseParam('description', fullText);
-      const budgetStr = parseParam('budget_ron', fullText) || parseParam('budgetRON', fullText);
-      const durationStr = parseParam('duration_days', fullText) || parseParam('durationDays', fullText);
-
-      // If budget is missing from XML, try to extract from the last assistant message
-      let budgetRON = budgetStr ? parseFloat(budgetStr) : 0;
-      let durationDays = durationStr ? parseInt(durationStr) : 7;
-
-      if (!budgetRON && messages.length > 0) {
-        console.log('🔍 Budget missing from XML, checking last assistant message...');
-        const lastAssistantMsg = messages.filter(m => m.role === 'assistant').pop();
-        const budgetMatch = lastAssistantMsg?.content?.match(/Budget[:\s]+(\d+\.?\d*)\s*RON/i);
-        const deadlineMatch = lastAssistantMsg?.content?.match(/Deadline[:\s]+(\d+)\s*days?/i) ||
-                             lastAssistantMsg?.content?.match(/Timeline[:\s]+(\d+)\s*days?/i) ||
-                             lastAssistantMsg?.content?.match(/Duration[:\s]+(\d+)\s*days?/i);
-
-        if (budgetMatch) {
-          budgetRON = parseFloat(budgetMatch[1]);
-          console.log('✅ Extracted budget from previous message:', budgetRON);
-        }
-        if (deadlineMatch) {
-          durationDays = parseInt(deadlineMatch[1]);
-          console.log('✅ Extracted duration from previous message:', durationDays);
-        }
-      }
-
-      if (projectKey && title && budgetRON > 0 && walletAddress) {
-        console.log('✅ Complete project details ready:', { projectKey, title, budget: budgetRON, duration: durationDays });
-        console.log('🚀 BYPASSING BROKEN TOOL - Creating project directly...');
-
-        try {
-          // Import the contract utils
-          const { createProject } = await import('@/app/lib/db-neon');
-
-          // Step 1: Create in database
-          console.log('💾 Step 1: Creating project in database...');
-          const dbProject = await createProject({
-            contractKey: projectKey,
-            assigneeAddress: walletAddress,
-            title,
-            description,
-          });
-
-          console.log('✅ Project created in DB with ID:', dbProject.id);
-
-          // Step 2: Register on-chain using deployer wallet
-          console.log('⛓️  Step 2: Registering project on blockchain...');
-
-          try {
-            const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || '0x4d3071a94f7b614f06a5b12122e0b922b859d30fa92e1a691645ffd402dc686f';
-            const MAIN_CONTRACT = '0x46F59fF2F2ea9A2f5184B63c947346cF7171F1C3';
-
-            const budgetWei = BigInt(Math.floor(budgetRON * 1e18));
-            const now = Math.floor(Date.now() / 1000);
-            const endDeadline = now + (durationDays * 24 * 60 * 60);
-            const zeroAddress = '0x0000000000000000000000000000000000000000';
-
-            const MainABI = (await import('@/app/abis/Main.json')).default;
-
-            // Use cast to call the contract
-            const castCmd = `cast send ${MAIN_CONTRACT} "createProject(address,address,uint64,uint64,uint256,uint256,address)" \
-              ${projectKey} \
-              ${walletAddress} \
-              ${now} \
-              ${endDeadline} \
-              ${dbProject.id} \
-              ${budgetWei} \
-              ${zeroAddress} \
-              --private-key ${DEPLOYER_PRIVATE_KEY} \
-              --rpc-url https://saigon-testnet.roninchain.com/rpc`;
-
-            const { exec } = await import('child_process');
-            const { promisify } = await import('util');
-            const execAsync = promisify(exec);
-
-            const { stdout } = await execAsync(castCmd);
-            const txMatch = stdout.match(/transactionHash\s+(.+)/);
-            const txHash = txMatch ? txMatch[1].trim() : 'unknown';
-
-            console.log('✅ Project registered on-chain! TX:', txHash);
-
-            projectCreatedMessage = `\n\n✅ **Project successfully created!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Blockchain TX: ${txHash}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n- Assignee: ${walletAddress}\n\n🚀 **You can start working now!** The ${budgetRON} RON will be released when you submit your work and it's approved by the AI council.`;
-
-          } catch (chainError: any) {
-            console.error('⚠️ On-chain registration failed:', chainError.message);
-            projectCreatedMessage = `\n\n✅ **Project created in database!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n- Assignee: ${walletAddress}\n\n⚠️ **Note**: Project is in the database but on-chain registration failed. You can still start working! Error: ${chainError.message}`;
-          }
-
-          console.log('✅ Project creation completed - bypassed broken AgentKit tool');
-        } catch (dbError: any) {
-          console.error('❌ Direct project creation failed:', dbError);
-          projectCreatedMessage = `\n\n❌ **Project creation error**: ${dbError.message}\n\nThe project parameters were extracted but database creation failed. Please try again.`;
-        }
-      } else {
-        console.log('⚠️ Incomplete XML parameters:', { projectKey: !!projectKey, title: !!title, budgetRON: budgetRON });
-      }
-    } else if (hadToolError && result.steps?.some((s: any) =>
-      s.content?.some((c: any) => c.toolName === 'CustomActionProvider_create_project_onchain')
-    )) {
-      // NO XML but tool was called - extract from last assistant message
-      console.log('📋 No XML but project tool was called - extracting from conversation...');
-
-      const lastAssistantMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastAssistantMsg && walletAddress) {
-        console.log('🔍 Last assistant message (first 300 chars):', lastAssistantMsg.content?.substring(0, 300));
-
-        const titleMatch = lastAssistantMsg.content?.match(/\*\*Title[:\s]+([^\n*]+)/i) ||
-                          lastAssistantMsg.content?.match(/Title[:\s]+([^\n]+)/i) ||
-                          lastAssistantMsg.content?.match(/\*\*([^*]+Infographic[^*]*)\*\*/i);
-        const descMatch = lastAssistantMsg.content?.match(/\*\*Description[:\s]+([^\n*]+)/i) ||
-                         lastAssistantMsg.content?.match(/Description[:\s]+([^\n]+)/i);
-        const budgetMatch = lastAssistantMsg.content?.match(/Budget[:\s]+(\d+\.?\d*)\s*RON/i) ||
-                           lastAssistantMsg.content?.match(/(\d+\.?\d*)\s*RON/i);
-        const durationMatch = lastAssistantMsg.content?.match(/Timeline[:\s]+(\d+)\s*days?/i) ||
-                             lastAssistantMsg.content?.match(/Deadline[:\s]+(\d+)\s*days?/i) ||
-                             lastAssistantMsg.content?.match(/(\d+)\s*days/i);
-
-        console.log('🔍 Pattern matches:', {
-          titleMatch: titleMatch?.[1]?.substring(0, 50),
-          budgetMatch: budgetMatch?.[1],
-          durationMatch: durationMatch?.[1]
-        });
-
-        if (titleMatch && budgetMatch) {
-          const title = titleMatch[1].trim();
-          const description = descMatch ? descMatch[1].trim() : title;
-          const budgetRON = parseFloat(budgetMatch[1]);
-          const durationDays = durationMatch ? parseInt(durationMatch[1]) : 7;
-
-          console.log('✅ Extracted from conversation:', { title, budget: budgetRON });
-          console.log('🚀 Creating project directly from conversation context...');
-
-          try {
-            const { createProject } = await import('@/app/lib/db-neon');
-
-            console.log('💾 Creating project in database...');
-            const dbProject = await createProject({
-              contractKey: walletAddress,
-              assigneeAddress: walletAddress,
-              title,
-              description,
-            });
-
-            console.log('✅ Project created in DB with ID:', dbProject.id);
-
-            // Try on-chain registration
-            try {
-              const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || '0x4d3071a94f7b614f06a5b12122e0b922b859d30fa92e1a691645ffd402dc686f';
-              const MAIN_CONTRACT = '0x46F59fF2F2ea9A2f5184B63c947346cF7171F1C3';
-
-              const budgetWei = BigInt(Math.floor(budgetRON * 1e18));
-              const now = Math.floor(Date.now() / 1000);
-              const endDeadline = now + (durationDays * 24 * 60 * 60);
-              const zeroAddress = '0x0000000000000000000000000000000000000000';
-
-              const castCmd = `cast send ${MAIN_CONTRACT} "createProject(address,address,uint64,uint64,uint256,uint256,address)" ${walletAddress} ${walletAddress} ${now} ${endDeadline} ${dbProject.id} ${budgetWei} ${zeroAddress} --private-key ${DEPLOYER_PRIVATE_KEY} --rpc-url https://saigon-testnet.roninchain.com/rpc`;
-
-              const { exec } = await import('child_process');
-              const { promisify } = await import('util');
-              const execAsync = promisify(exec);
-
-              const { stdout } = await execAsync(castCmd);
-              const txMatch = stdout.match(/transactionHash\s+(.+)/);
-              const txHash = txMatch ? txMatch[1].trim() : 'pending';
-
-              console.log('✅ Project registered on-chain! TX:', txHash);
-
-              projectCreatedMessage = `\n\n✅ **Project successfully created!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Blockchain TX: ${txHash}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n- Assignee: ${walletAddress}\n\n🚀 **You can start working now!** The ${budgetRON} RON will be released when you submit your work and it's approved by the AI council.`;
-
-            } catch (chainError: any) {
-              console.error('⚠️ On-chain registration failed:', chainError.message);
-              projectCreatedMessage = `\n\n✅ **Project created in database!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n\n⚠️ On-chain registration pending. You can start working!`;
-            }
-
-          } catch (dbError: any) {
-            console.error('❌ DB creation failed:', dbError);
-          }
-        }
-      }
-    }
+    // No manual fallback: Grok must call create_project_onchain with correct parameters
 
     // Clean up any tool calling artifacts from the response
     text = text.replace(/<has_function_call>/g, '').trim();
@@ -487,12 +285,12 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
     // ANTI-HALLUCINATION: If agent claims TX hash, verify tool was actually called successfully
     const claimsTxHash = text.match(/TX:?\s*(0x[a-fA-F0-9]{64})/i);
     const hadToolCall = result.steps?.some((step: any) =>
-      step.content?.some((c: any) => c.toolName === 'CustomActionProvider_create_project_onchain')
+      step.content?.some((c: any) => c.toolName === 'create_project_onchain' || c.toolName === 'CustomActionProvider_create_project_onchain')
     );
     const hadToolSuccess = result.steps?.some((step: any) =>
       step.content?.some((c: any) =>
         c.type === 'tool-result' &&
-        c.toolName === 'CustomActionProvider_create_project_onchain' &&
+        (c.toolName === 'create_project_onchain' || c.toolName === 'CustomActionProvider_create_project_onchain') &&
         typeof c.output === 'string' &&
         c.output.includes('Project created')
       )

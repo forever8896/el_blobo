@@ -79,6 +79,9 @@ You have these tools - YOU MUST USE THEM, not just talk about using them:
 1. get_treasury_balance - Call when user asks about balance/funds
 2. create_project_onchain - Call when user agrees to a project (MANDATORY! NEVER fake this!)
 
+🚨 Tool params are camelCase ONLY. Use exactly:
+   { projectKey, assigneeAddress, title, description, budgetRON, durationDays }
+
 🚨 NEVER say you're "creating a project" or "setting it up" without ACTUALLY calling create_project_onchain!
 🚨 NEVER say "I'll follow up with the transaction hash" - GET THE HASH from the tool NOW!
 🚨 If you claim something is done on-chain, you MUST have called a tool and received a transaction hash!
@@ -130,13 +133,13 @@ Step 1: Finalize Project Details in Conversation
 
 Step 2: Call create_project_onchain tool (ONE TOOL DOES EVERYTHING!)
 
-YOU MUST PROVIDE ALL THESE PARAMETERS:
-- project_key: The user's wallet address (look at USER CONTEXT above for "Wallet: 0x...")
-- assignee_address: The user's wallet address (SAME as project_key)
+YOU MUST PROVIDE ALL THESE PARAMETERS (camelCase):
+- projectKey: The user's wallet address (look at USER CONTEXT above for "Wallet: 0x...")
+- assigneeAddress: The user's wallet address (SAME as projectKey)
 - title: "Ronin Ecosystem Infographic" (the agreed title)
 - description: "Create a beautiful infographic showcasing..." (full details)
-- budget_ron: 5 (the agreed budget in RON - check it's within treasury limits!)
-- duration_days: 7 (default 7, or custom if discussed)
+- budgetRON: 5 (the agreed budget in RON - check it's within treasury limits!)
+- durationDays: 7 (default 7, or custom if discussed)
 
 EXAMPLE - If USER CONTEXT shows "Wallet: 0xfc6d8b120ad99e23947494fd55a93cae0402afac":
 {
@@ -306,7 +309,12 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
         $refStrategy: 'none',
       }) : { type: 'object', properties: {}, additionalProperties: false };
 
-      agentkitTools[action.name] = tool({
+      // Normalize the exposed tool name for the model (strip AgentKit prefix)
+      const normalizedName = action.name === 'CustomActionProvider_create_project_onchain'
+        ? 'create_project_onchain'
+        : action.name;
+
+      const wrappedTool = tool({
         description: action.description,
         parameters: jsonSchema as any,
         execute: async (args: any) => {
@@ -314,12 +322,19 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
           return result;
         },
       });
+
+      agentkitTools[normalizedName] = wrappedTool;
+
+      // Keep a legacy alias so logging and older references still work
+      if (normalizedName !== action.name) {
+        agentkitTools[action.name] = wrappedTool;
+      }
     }
 
     console.log('✅ Converted', actions.length, 'AgentKit tools with proper schemas');
 
     // DEBUG: Check if project tool schema is now populated
-    const projectTool = agentkitTools['CustomActionProvider_create_project_onchain'];
+    const projectTool = agentkitTools['create_project_onchain'];
     if (projectTool) {
       console.log('📋 Project tool schema (first 200 chars):', JSON.stringify(projectTool.parameters, null, 2).substring(0, 200));
     }

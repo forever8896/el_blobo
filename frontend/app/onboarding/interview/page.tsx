@@ -22,9 +22,9 @@ export default function InterviewPage() {
   }, [state.depositCompleted, state.walletAddress, router]);
 
   const questions = [
-    "QUERY 1: What drives you? What gets you excited to work on a project?",
-    "QUERY 2: What gives you energy? What kind of work makes you lose track of time?",
-    "QUERY 3: What lights a fire under your ass? What problems do you desperately want to solve?"
+    "QUERY 1: What gets you excited to work on a project?",
+    "QUERY 2: What gives you energy?",
+    "QUERY 3: What lights a fire under your ass?"
   ];
 
   const handleComplete = async (finalResponses: string[]) => {
