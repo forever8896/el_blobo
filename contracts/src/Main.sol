@@ -26,20 +26,13 @@ contract Main {
     /// @notice Emitted when a user registers via Main
     event UserRegistered(address indexed user);
 
-    /// @notice Per-project recorded reward (in vault **share units**, not assets)
-    mapping(address => uint256) public projectReward;
-
-    /// @notice Whether a project has already been finalized
-    mapping(address => bool) public projectFinalized;
+    /// @notice Per-user recorded reward (in *asset* units, not shares)
+    mapping(address => uint256) public userReward;
 
     // ------------------------------------------------------------------------
     // Constructor & ownership
     // ------------------------------------------------------------------------
 
-    /// @notice Initialize Main with already-deployed registry, vault and users registry
-    /// @param _projectRegistry Already-deployed ProjectRegistry
-    /// @param _vault           Already-deployed RewardVault (IRewardVault)
-    /// @param _users           Already-deployed Users registry
     constructor(
         ProjectRegistry _projectRegistry,
         IRewardVault _vault,
@@ -60,7 +53,6 @@ contract Main {
         _;
     }
 
-    /// @notice Transfer ownership to a new owner (single-step)
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "new owner = zero");
         owner = newOwner;
@@ -70,12 +62,10 @@ contract Main {
     // Helpers
     // ------------------------------------------------------------------------
 
-    /// @dev Derive a unique callId per project key for payout / finalization
     function _projectCallId(address key) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked("PROJECT_PAYOUT", key));
     }
 
-    /// @dev Convenience helper to get (ProjectData, multisig) and sanity-check
     function _getProjectInfoOrRevert(address key)
         internal
         view
@@ -90,16 +80,6 @@ contract Main {
     // Registration (via Users registry)
     // ------------------------------------------------------------------------
 
-    /// @notice Register a user in the Users registry, charging a fee based on vault price.
-    ///
-    /// @dev
-    /// - `userAddress` is explicit but must equal msg.sender (self-registration).
-    /// - Uses `vault.registrationPrice()` as a minimum fee.
-    /// - Actual registration & sponsor invariants are handled by `Users.register`.
-    ///
-    /// @param userAddress  Address of the user being registered
-    /// @param bigSponsor   Big sponsor address (or address(0) for none)
-    /// @param smallSponsor Small sponsor address (or address(0) for none)
     function registerUser(
         address userAddress,
         address bigSponsor,
@@ -108,21 +88,17 @@ contract Main {
         require(userAddress != address(0), "user = zero");
         require(userAddress == msg.sender, "can only self-register");
 
-        // Enforce a minimum registration fee based on vault pricing
         uint256 price = vault.registrationPrice();
         require(msg.value >= price, "fee below registration price");
 
-        // Delegate actual user creation & invariants to Users registry
         users.register(bigSponsor, smallSponsor);
 
         emit UserRegistered(userAddress);
 
-        // Forward fee to owner (could also be left in contract if you prefer)
         (bool ok, ) = payable(owner).call{value: msg.value}("");
         require(ok, "fee transfer failed");
     }
 
-    /// @notice Check if a given address is registered (proxy to Users)
     function isRegistered(address userAddr) external view returns (bool) {
         return users.isUser(userAddr);
     }
@@ -131,16 +107,6 @@ contract Main {
     // Project lifecycle
     // ------------------------------------------------------------------------
 
-    /// @notice Create a new ProjectData via the ProjectRegistry and wire its multisig
-    /// @dev Only the Main owner can create projects (matches ProjectRegistry.onlyOwner).
-    ///
-    /// @param key           Project key (used in registry)
-    /// @param assignee      Project assignee
-    /// @param beginDeadline Start of 100% payment window
-    /// @param endDeadline   End of window (0% after this)
-    /// @param dbId          Off-chain DB id
-    /// @param totalReward   Max payment amount for this project (asset units)
-    /// @param ms            CallConfirmation4of4 multisig for this project
     function createProject(
         address key,
         address assignee,
@@ -150,7 +116,6 @@ contract Main {
         uint256 totalReward,
         CallConfirmation4of4 ms
     ) external onlyOwner {
-        // create ProjectData in registry
         projectRegistry.createProject(
             key,
             assignee,
@@ -160,44 +125,42 @@ contract Main {
             totalReward
         );
 
-        // and wire its multisig
         projectRegistry.setProjectMultisig(key, ms);
     }
 
-    /// @notice Sign a project payout as one of the 4 participants (assignee or committee)
-    /// @dev Uses the per-project CallConfirmation4of4:
-    ///      - Call will revert if msg.sender is not part of assignee/committee or already signed.
-    ///      - If after this call all 4 have signed, we automatically finalize the project.
-    /// @param key The project key (same key used in ProjectRegistry)
     function signProject(address key) external {
-        ( , CallConfirmation4of4 ms) = _getProjectInfoOrRevert(key);
-        bytes32 callId = _projectCallId(key);
+        (ProjectData pd, CallConfirmation4of4 ms) =
+            _getProjectInfoOrRevert(key);
 
+        // Don’t allow signing after project is already Done
+        ProjectData.ProjectView memory v = pd.getProject();
+        require(v.status != ProjectData.Status.Done, "project already done");
+
+        bytes32 callId = _projectCallId(key);
         ms.approve(callId);
 
-        // If everybody signed, finalize the project
-        if (ms.isConfirmed(callId) && !projectFinalized[key]) {
+        if (ms.isConfirmed(callId)) {
             _finalizeProject(key);
         }
     }
 
-    /// @notice External entrypoint to manually finalize a project once 4-of-4 have signed
-    /// @param key The project key (same key used in ProjectRegistry)
     function finalizeProject(address key) external {
-        ( , CallConfirmation4of4 ms) = _getProjectInfoOrRevert(key);
+        (ProjectData pd, CallConfirmation4of4 ms) =
+            _getProjectInfoOrRevert(key);
         bytes32 callId = _projectCallId(key);
         require(ms.isConfirmed(callId), "not fully signed");
-        require(!projectFinalized[key], "already finalized");
+
+        ProjectData.ProjectView memory v = pd.getProject();
+        require(v.status != ProjectData.Status.Done, "project already done");
 
         _finalizeProject(key);
     }
 
     /// @dev Internal finalization logic:
-    ///      - Ensure project exists in registry
     ///      - Evaluate reward (in asset units)
-    ///      - Convert to shares using RewardVault pricing
-    ///      - Record project reward (in share units)
-    ///      - Mark project as Done in ProjectData
+    ///      - Convert to shares using RewardVault pricing (sanity check)
+    ///      - Split reward among user & sponsors in `userReward` (asset units)
+    ///      - Mark project as Done
     function _finalizeProject(address key) internal {
         ProjectData projectData = projectRegistry.getProject(key);
 
@@ -205,45 +168,91 @@ contract Main {
         uint256 assets = projectData.evaluatePayment(block.timestamp);
         require(assets > 0, "no reward to pay");
 
-        // Convert to shares based on RewardVault pricing
+        // Sanity check against vault’s share pricing
         uint256 shares = vault.convertToShares(assets);
         require(shares > 0, "reward too small");
-
-        // Ensure vault has enough unallocated shares (optional safety)
         require(vault.unallocatedShares() >= shares, "insufficient vault shares");
 
-        // Record the reward for this project in share units
-        projectReward[key] = shares;
-        projectFinalized[key] = true;
+        // Split the asset reward to user + sponsors
+        payShares(key);
 
-        // Mark project as Done inside ProjectData
+        // Mark project as Done
         projectData.setStatus(ProjectData.Status.Done);
     }
 
-    /// @notice Allocate the project reward (in shares) to the assignee inside RewardVault
-    /// @dev After this, the assignee can call RewardVault.withdraw(shares, receiver)
-    ///      to redeem the underlying assets.
-    /// @param key       The project key (same key used in ProjectRegistry)
-    /// @param assignee  The assignee address that should receive the reward shares
+    /// @notice Split the reward for `user` (project key) to user & sponsors
+    /// @dev Stores amounts in `userReward[...]` in **asset units**.
+    function payShares(address user) internal {
+        // Get how much goes to user / big sponsor / small sponsor (in assets)
+        (
+            uint256 userAmount,
+            uint256 bigSponsorAmount,
+            uint256 smallSponsorAmount
+        ) = getRewardShares(user);
+
+        // Look up sponsors from Users registry
+        (address bigSponsor, address smallSponsor) = users.getSponsors(user);
+
+        // Credit user
+        if (userAmount > 0) {
+            userReward[user] += userAmount;
+        }
+
+        // Credit big sponsor, if any
+        if (bigSponsor != address(0) && bigSponsorAmount > 0) {
+            userReward[bigSponsor] += bigSponsorAmount;
+        }
+
+        // Credit small sponsor, if any
+        if (smallSponsor != address(0) && smallSponsorAmount > 0) {
+            userReward[smallSponsor] += smallSponsorAmount;
+        }
+    }
+
+    /// @notice Convenience view that:
+    ///         1) Evaluates the total payout for a project key at "now"
+    ///         2) Runs the sponsor split via `Users.evaluatePayout`
+    function getRewardShares(address key)
+        public
+        view
+        returns (
+            uint256 userAmount,
+            uint256 bigSponsorAmount,
+            uint256 smallSponsorAmount
+        )
+    {
+        uint256 amount = evaluatePaymentFor(key, block.timestamp);
+        return evaluatePayouts(key, amount);
+    }
+
+    /// @notice Withdraw the *asset* reward for `assignee` and convert to vault shares
+    /// @dev Uses asset amounts from `userReward[assignee]`, converts to shares,
+    ///      and assigns shares inside the RewardVault.
     function withdrawProjectReward(address key, address assignee)
         external
         returns (uint256 allocatedShares)
     {
         require(assignee != address(0), "assignee = zero");
-        require(projectFinalized[key], "project not finalized");
 
-        uint256 shares = projectReward[key];
-        require(shares > 0, "no reward recorded");
+        // Require project is Done
+        ProjectData projectData = projectRegistry.getProject(key);
+        ProjectData.ProjectView memory v = projectData.getProject();
+        require(v.status == ProjectData.Status.Done, "project not finalized");
 
-        // Only assignee can trigger their own share allocation
+        // Use the *user’s* recorded reward in assets
+        uint256 amount = userReward[assignee];
+        require(amount > 0, "no reward recorded");
+
         require(msg.sender == assignee, "only assignee can claim");
 
-        // Clear state before external call (re-entrancy safety)
-        projectReward[key] = 0;
+        // Clear before external call
+        userReward[assignee] = 0;
 
-        // Allocate shares to assignee in RewardVault
+        // Convert asset amount to vault shares and allocate them
+        uint256 shares = vault.convertToShares(amount);
+        require(shares > 0, "amount too small");
+
         vault.transferShares(shares, assignee);
-
         return shares;
     }
 
@@ -251,8 +260,6 @@ contract Main {
     // Admin: update registration price via RewardVault
     // ------------------------------------------------------------------------
 
-    /// @notice Update the registration price in the underlying RewardVault
-    /// @dev Only Main.owner can call this; RewardVault itself also enforces its own owner.
     function updateRegistrationPrice(uint256 price) external onlyOwner {
         require(price > 0, "price = 0");
         vault.setRegistrationPrice(price);
@@ -262,14 +269,8 @@ contract Main {
     // Read-only helpers
     // ------------------------------------------------------------------------
 
-    /// @notice Helper: read how much should be paid for a given project key, at a given time
-    /// @dev Requires that the payout has been fully approved by the 4-of-4 multisig
-    ///      for this specific project (key). Returns amount in *asset units*,
-    ///      not in shares.
-    /// @param key    The address key used in ProjectRegistry.projects mapping
-    /// @param atTime Timestamp used for evaluation (0 = use block.timestamp)
     function evaluatePaymentFor(address key, uint256 atTime)
-        external
+        public
         view
         returns (uint256 paymentRequired)
     {
@@ -287,4 +288,31 @@ contract Main {
 
         return projectData.evaluatePayment(atTime);
     }
+
+    function evaluatePayouts(address user, uint256 amount)
+        public
+        view
+        returns (
+            uint256 userAmount,
+            uint256 bigSponsorAmount,
+            uint256 smallSponsorAmount
+        )
+    {
+        (
+            address userAddr,
+            uint256 _userAmount,
+            address bigSponsorAddr,
+            uint256 _bigAmount,
+            address smallSponsorAddr,
+            uint256 _smallAmount
+        ) = users.evaluatePayout(user, amount);
+
+        // Optional sanity check that the primary address matches
+        require(userAddr == user, "Users: mismatched user");
+
+        userAmount = _userAmount;
+        bigSponsorAmount = _bigAmount;
+        smallSponsorAmount = _smallAmount;
+    }
+
 }
