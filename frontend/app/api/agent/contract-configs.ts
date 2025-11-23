@@ -114,14 +114,14 @@ const DAO_GOVERNANCE: SmartContractConfig = {
  * Blob Platform Contracts on Ronin Saigon Testnet
  */
 const BLOB_MAIN_CONTRACT: SmartContractConfig = {
-  contractAddress: "0x25332d3C379FCbCdA013695eca078b922E56B3de" as Address,
+  contractAddress: "0xD1460312bF580271bb1674c0e8eC41Db4cADb9fD" as Address,
   abi: MainABI as any,
   supportedNetworks: ["ronin-saigon-testnet"],
   contractDescription: "Main contract for The Blob platform - handles user registration, project management, and rewards distribution on Ronin Saigon Testnet",
 };
 
 const BLOB_VAULT_CONTRACT: SmartContractConfig = {
-  contractAddress: "0x39224466f23c0D48f3ED96F1E8EF7BE973FaE4bC" as Address,
+  contractAddress: "0x027a446e021f0d3587Bad84a996BCc910cC55259" as Address,
   abi: VaultABI as any,
   supportedNetworks: ["ronin-saigon-testnet"],
   contractDescription: "Native Reward Vault for The Blob platform - manages registration pricing and reward shares on Ronin Saigon Testnet",
