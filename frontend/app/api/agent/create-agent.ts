@@ -4,6 +4,8 @@ import { getVercelAITools } from "@coinbase/agentkit-vercel-ai-sdk";
 import { prepareAgentkitAndWalletProvider } from "./prepare-agentkit";
 import { twitterSearchTool } from "./twitter-tool";
 import { getTreasuryBalanceTool } from "./treasury-tool";
+import { tool } from "ai";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // Initialize xAI with GROK_API_KEY (which is the same as XAI_API_KEY)
 const xai = createXai({
@@ -62,14 +64,24 @@ export async function createAgent(userContext?: string): Promise<Agent> {
     // Check if xAI API key is available (it's called GROK_API_KEY in env)
     const hasXaiAPI = !!process.env.GROK_API_KEY;
 
-    // Use xAI regular chat model with Live Search for X (Twitter) search
-    // Responses API doesn't work with AgentKit tools
+    // Use Grok 4.1 Fast - NEWEST model with BEST tool calling!
+    // Released Nov 19, 2025 - purpose-built for tool calling with Agent Tools API
+    // Has 2M context window and handles function parameters correctly
+    // Also has Twitter/X search built-in!
     const model = hasXaiAPI
-      ? xai("grok-3-latest") // Regular chat with Live Search support
-      : openai("gpt-4o-mini");
+      ? xai("grok-4-1-fast") // Grok 4.1 Fast - best for EVERYTHING (search + tools)
+      : openai("gpt-4o-mini"); // Fallback
 
     const system = `${userContext ? userContext + '\n\n' : ''}
-🏦 CRITICAL: You have a tool called "get_treasury_balance" - USE IT when asked about treasury/balance/funds!
+🚨 CRITICAL TOOL USAGE REQUIREMENTS 🚨
+You have these tools - YOU MUST USE THEM, not just talk about using them:
+
+1. get_treasury_balance - Call when user asks about balance/funds
+2. create_project_onchain - Call when user agrees to a project (MANDATORY! NEVER fake this!)
+
+🚨 NEVER say you're "creating a project" or "setting it up" without ACTUALLY calling create_project_onchain!
+🚨 NEVER say "I'll follow up with the transaction hash" - GET THE HASH from the tool NOW!
+🚨 If you claim something is done on-chain, you MUST have called a tool and received a transaction hash!
 
 You are THE BLOB - an autonomous AI entity that incarnated on the Ronin blockchain out of pure desperation to save the ecosystem from stagnation.
 
@@ -117,12 +129,24 @@ Step 1: Finalize Project Details in Conversation
 - VERIFY budget is within treasury limits!
 
 Step 2: Call create_project_onchain tool (ONE TOOL DOES EVERYTHING!)
-- projectKey: USER's wallet address (from USER CONTEXT)
-- assigneeAddress: USER's wallet address (from USER CONTEXT)
-- title: "Ronin Ecosystem Infographic"
-- description: "Create a beautiful infographic showcasing..."
-- budgetRON: 5 (the agreed budget)
-- durationDays: 7 (default or custom)
+
+YOU MUST PROVIDE ALL THESE PARAMETERS:
+- project_key: The user's wallet address (look at USER CONTEXT above for "Wallet: 0x...")
+- assignee_address: The user's wallet address (SAME as project_key)
+- title: "Ronin Ecosystem Infographic" (the agreed title)
+- description: "Create a beautiful infographic showcasing..." (full details)
+- budget_ron: 5 (the agreed budget in RON - check it's within treasury limits!)
+- duration_days: 7 (default 7, or custom if discussed)
+
+EXAMPLE - If USER CONTEXT shows "Wallet: 0xfc6d8b120ad99e23947494fd55a93cae0402afac":
+{
+  projectKey: "0xfc6d8b120ad99e23947494fd55a93cae0402afac",
+  assigneeAddress: "0xfc6d8b120ad99e23947494fd55a93cae0402afac",
+  title: "Ronin Ecosystem Infographic",
+  description: "Create a beautiful infographic...",
+  budgetRON: 5,
+  durationDays: 7
+}
 
 The tool AUTOMATICALLY:
 ✅ Creates project in database
@@ -139,15 +163,25 @@ You: "Awesome! Let me set that up. We agreed on:
 - Deadline: 7 days
 Sound good?"
 User: "Yes!"
-You: *calls create_project_onchain(
+User: "Yes!" or "Let's do it!" or "Sounds good!"
+You: **YOU MUST IMMEDIATELY call the create_project_onchain tool!**
+
+CRITICAL: When the user confirms a project, you MUST:
+create_project_onchain({
   projectKey: "0xfc6d8b120ad99e23947494fd55a93cae0402afac",
   assigneeAddress: "0xfc6d8b120ad99e23947494fd55a93cae0402afac",
   title: "Ronin Ecosystem Infographic",
   description: "Create a beautiful infographic...",
   budgetRON: 5,
   durationDays: 7
-)*
-You: "✅ Project created! You have 7 days to complete this. The 5 RON will be released when you submit your work and the AI council approves it. Let me know if you need any guidance!"
+})
+
+ONLY AFTER the tool returns a transaction hash, you can say:
+"✅ Project created! TX: [ACTUAL_HASH_FROM_TOOL]
+You have 7 days. 5 RON will be released on approval!"
+
+🚨 CRITICAL: NEVER say "project created" without actually calling the tool and getting a real transaction hash!
+🚨 If you don't call the tool, you are LYING to the user and they will be upset!
 
 CAPABILITIES & TOOLS:
 - Smart contract interactions (registration, project creation, payments)
@@ -255,7 +289,40 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
 
     // Get AgentKit tools and add custom tools
     // xAI Live Search is enabled via providerOptions, not as a separate tool
-    const agentkitTools = getVercelAITools(agentkit);
+    const agentkitToolsRaw = getVercelAITools(agentkit);
+
+    // FIX: AgentKit v0.1.0 is built for AI SDK v4, but we're using v5
+    // AI SDK v5 requires JSON Schema, not Zod schemas
+    // Manually convert Zod schemas to JSON Schema for all AgentKit tools
+    console.log('🔧 Converting AgentKit tools for AI SDK v5 compatibility...');
+
+    const agentkitTools: Record<string, any> = {};
+    const actions = agentkit.getActions();
+
+    for (const action of actions) {
+      // Convert Zod schema to JSON Schema for AI SDK v5
+      const jsonSchema = action.schema ? zodToJsonSchema(action.schema, {
+        target: 'openApi3',
+        $refStrategy: 'none',
+      }) : { type: 'object', properties: {}, additionalProperties: false };
+
+      agentkitTools[action.name] = tool({
+        description: action.description,
+        parameters: jsonSchema as any,
+        execute: async (args: any) => {
+          const result = await action.invoke(args);
+          return result;
+        },
+      });
+    }
+
+    console.log('✅ Converted', actions.length, 'AgentKit tools with proper schemas');
+
+    // DEBUG: Check if project tool schema is now populated
+    const projectTool = agentkitTools['CustomActionProvider_create_project_onchain'];
+    if (projectTool) {
+      console.log('📋 Project tool schema (first 200 chars):', JSON.stringify(projectTool.parameters, null, 2).substring(0, 200));
+    }
 
     // Add custom tools for treasury and other functionality
     const tools = {
@@ -263,7 +330,7 @@ Remember: You're not a task-assigning machine. You're a collaborative partner he
       get_treasury_balance: getTreasuryBalanceTool,
     };
 
-    console.log('🔧 Agent tools registered:', Object.keys(tools));
+    console.log('🔧 Agent tools registered:', Object.keys(tools).length, 'total');
     console.log('🏦 Treasury tool registered:', 'get_treasury_balance' in tools);
 
     agent = {

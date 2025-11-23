@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useState } from "react";
 
 interface WorkSubmissionProps {
@@ -55,20 +55,20 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
 
   return (
     <div className="fixed inset-0 bg-black/90 z-40 flex items-center justify-center p-4">
-      <motion.div
+      <m.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         className="w-full max-w-3xl bg-blob-violet border-2 border-blob-cobalt p-8 shadow-[8px_8px_0px_#1E4CDD]"
       >
         {/* Header */}
         <div className="text-center mb-8 border-b-2 border-blob-cobalt pb-6">
-          <motion.div
+          <m.div
             className="text-6xl mb-4"
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
             📤
-          </motion.div>
+          </m.div>
           <h2 className="text-3xl font-black text-white mb-2 font-display">
             SUBMIT YOUR WORK
           </h2>
@@ -138,7 +138,7 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
           </div>
 
           {/* Warning */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="bg-blob-orange/10 border-l-4 border-blob-orange p-4"
@@ -150,7 +150,7 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
               <br />
               Majority vote (2/3) required for approval.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Action Buttons */}
           <div className="flex gap-4 justify-end">
@@ -174,7 +174,7 @@ export default function WorkSubmission({ project, onSubmit, onCancel }: WorkSubm
             </button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

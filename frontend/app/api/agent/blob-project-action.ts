@@ -12,17 +12,15 @@ import MainABI from "@/app/abis/Main.json";
 
 /**
  * Schema for creating a project
- *
- * Note: This creates the project ON-CHAIN. The project should already exist in the database.
  */
 const CreateProjectSchema = z.object({
-  projectKey: z.string().describe("Unique project identifier (use the user's wallet address)"),
-  assigneeAddress: z.string().describe("The user's wallet address who will work on this project"),
-  title: z.string().describe("Project title/name"),
-  description: z.string().describe("Detailed project description and deliverables"),
-  budgetRON: z.number().describe("Project budget in RON tokens (will be converted to wei)"),
-  durationDays: z.number().default(7).describe("Project duration in days (default 7 days)"),
-}).describe("Create a project on The Blob platform - assigns work to a user with budget and deadline");
+  projectKey: z.string().describe("Unique project identifier - MUST use the user's wallet address from USER CONTEXT"),
+  assigneeAddress: z.string().describe("The user's wallet address who will work on this project - MUST use the user's wallet address from USER CONTEXT"),
+  title: z.string().describe("Project title/name - be descriptive and clear"),
+  description: z.string().describe("Detailed project description including deliverables and requirements"),
+  budgetRON: z.number().describe("Project budget in RON tokens (e.g. 5 for 5 RON) - MUST be within treasury limits"),
+  durationDays: z.number().default(7).describe("Project duration in days (default 7 days, can be 3-30)"),
+});
 
 /**
  * Create the Blob Project Action Provider
@@ -54,7 +52,41 @@ export function blobProjectActionProvider() {
       Note: The agent's wallet must be the contract owner to create projects on-chain.`,
       schema: CreateProjectSchema,
       invoke: async (walletProvider: EvmWalletProvider, args: z.infer<typeof CreateProjectSchema>) => {
-        const { projectKey, assigneeAddress, title, description, budgetRON, durationDays } = args;
+        console.log('🔍 Raw args received:', JSON.stringify(args, null, 2));
+
+        // WORKAROUND: Check global state for pending project (set by route.ts)
+        const pendingProject = (global as any).PENDING_PROJECT;
+
+        let { projectKey, assigneeAddress, title, description, budgetRON, durationDays } = args;
+
+        // If args are empty, use the pending project from global state
+        if ((!projectKey || !title) && pendingProject) {
+          console.log('📋 Using pending project from global state');
+          projectKey = pendingProject.projectKey;
+          assigneeAddress = pendingProject.assigneeAddress;
+          title = pendingProject.title;
+          description = pendingProject.description;
+          budgetRON = pendingProject.budgetRON;
+          durationDays = pendingProject.durationDays;
+
+          // Clear the pending project
+          delete (global as any).PENDING_PROJECT;
+
+          console.log('✅ Restored project from global:', {
+            projectKey,
+            title: title.substring(0, 50),
+            budgetRON
+          });
+        }
+
+        if (!projectKey || !assigneeAddress || !title || !description || !budgetRON) {
+          console.error('❌ Missing required parameters!');
+          return `❌ Error: Unable to extract all required project parameters.
+
+Received: ${JSON.stringify({ projectKey, assigneeAddress, title: title?.substring(0, 30), budgetRON })}
+
+This might be a tool calling issue. The project details are ready but couldn't be passed to the creation function.`;
+        }
 
         console.log('📋 Creating project (database + blockchain):', {
           key: projectKey,

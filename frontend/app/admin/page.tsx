@@ -230,9 +230,9 @@ export default function AdminPage() {
                 <div className="bg-gray-900 rounded-lg p-4 mb-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-400">Total Balance</p>
+                      <p className="text-sm text-gray-400">Total Assets</p>
                       <p className="text-2xl font-bold text-green-400">
-                        {parseFloat(vaultData.balance).toFixed(4)} RON
+                        {vaultData.treasury.totalAssets.toFixed(4)} RON
                       </p>
                     </div>
                     <div>

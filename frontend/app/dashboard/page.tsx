@@ -317,17 +317,6 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="border-t border-blob-cobalt pt-2 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Total Shares:</span>
-                          <span className="text-white">{treasuryInfo.totalShares.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Unallocated:</span>
-                          <span className="text-blob-green">{treasuryInfo.unallocatedShares.toLocaleString()}</span>
-                        </div>
-                      </div>
-
                       <div className="border-t border-blob-cobalt pt-2">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-gray-400">Utilization Rate:</span>
