@@ -10,197 +10,136 @@ export const IntroChart = () => {
         let chart: any = null;
 
         const initChart = async () => {
-             const { createChart, ColorType, CandlestickSeries } = await import('lightweight-charts');
+             const LightweightCharts = await import('lightweight-charts');
+             const { createChart, ColorType } = LightweightCharts;
 
              if (!containerRef.current) return;
 
              chart = createChart(containerRef.current, {
-                layout: { 
-                    background: { type: ColorType.Solid, color: 'transparent' }, 
-                    textColor: 'rgba(255, 255, 255, 0.3)' 
+                layout: {
+                    background: { type: ColorType.Solid, color: 'transparent' },
+                    textColor: 'rgba(255, 255, 255, 0.5)'
                 },
-                grid: { 
-                    vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, 
-                    horzLines: { color: 'rgba(255, 255, 255, 0.05)' } 
+                grid: {
+                    vertLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    horzLines: { color: 'rgba(255, 255, 255, 0.1)' }
                 },
                 width: containerRef.current.clientWidth,
                 height: containerRef.current.clientHeight,
-                timeScale: { visible: false },
-                rightPriceScale: { visible: false },
+                timeScale: {
+                    visible: false,
+                    rightOffset: 5,
+                    barSpacing: 12,
+                },
+                rightPriceScale: {
+                    visible: false,
+                    autoScale: true,
+                    scaleMargins: {
+                        top: 0.2,
+                        bottom: 0.2,
+                    },
+                },
                 crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
                 handleScroll: false,
                 handleScale: false,
             });
 
-                        const candlestickSeries = chart.addSeries(CandlestickSeries, {
-                            upColor: '#26a69a', 
-                            downColor: '#ef5350', 
-                            borderVisible: false, 
-                            wickUpColor: '#26a69a', 
-                            wickDownColor: '#ef5350' 
-                        });
-            
-                        // 1. Initial History (Stabilization)
-                        const data = [];
-                        let time = Math.floor(Date.now() / 1000) - 100 * 86400;
-                        let open = 1000;
-                        let currentClose = 1000;
-            
-                        // Generate 50 days of history first
-                        for (let i = 0; i < 50; i++) {
-                            const volatility = 15;
-                            const bias = (Math.random() - 0.4) * volatility; // Slight upward bias initially
-                            const close = Math.max(10, open + bias);
-                            const high = Math.max(open, close) + Math.random() * 10;
-                            const low = Math.min(open, close) - Math.random() * 10;
-                            
-                            data.push({ time: time, open, high, low, close });
-                            time += 86400;
-                            open = close;
-                            currentClose = close;
-                        }
-                        candlestickSeries.setData(data);
-                        chart.timeScale().fitContent();
-            
-                                                            // 2. Animation Loop (The Dump)
-            
-                                                            let animationFrameId: number = 0;
-            
-                                                            let tickIndex = 0; // Total animation frames
-            
-                                                            let candleIndex = 0; // Actual candles added
-            
-                                                            const ticksPerCandle = 6; // Increased for smooth 60fps (approx 10 candles/sec)
-            
-                                                            let currentCandleTicks = 0;
-            
-                                                            
-            
-                                                            // Start crash relative to candle count
-            
-                                                            const crashStartCandle = 10; 
-            
-                                                
-            
-                                                            const animate = () => {
-            
-                                                                // No throttle: Run at native refresh rate (usually 60fps) for maximum smoothness
-            
-                                                                tickIndex++;
-            
-                                                
-            
-                                                                // Determine volatility & trend based on CANDLE index (macro trend)
-            
-                                                                let volatility = 15 + candleIndex * 0.5;
-            
-                                                                let trendBias = (Math.random() - 0.5) * 5; 
-            
-                                                
-            
-                                                                // Crash Logic
-            
-                                                                if (candleIndex > crashStartCandle) {
-            
-                                                                    trendBias -= (candleIndex - crashStartCandle) * 2.0; // Strong down trend
-            
-                                                                    volatility += 20;
-            
-                                                                }
-            
-                                                
-            
-                                                                // Random walk for the "current price" (close)
-            
-                                                                let move = trendBias + (Math.random() - 0.5) * volatility;
-            
-                                                                let currentPrice = open + move;
-            
-                                                                
-            
-                                                                if (currentPrice < 1) currentPrice = 1;
-            
-                                                
-            
-                                                                const close = currentPrice;
-            
-                                                                
-            
-                                                                // Wicks need to contain the open and close
-            
-                                                                const bodyHigh = Math.max(open, close);
-            
-                                                                const bodyLow = Math.min(open, close);
-            
-                                                                
-            
-                                                                const high = bodyHigh + Math.random() * volatility * 0.2;
-            
-                                                                let low = bodyLow - Math.random() * volatility * 0.2;
-            
-                                                                if (low < 0.1) low = 0.1;
-            
-                                                
-            
-                                                                const currentCandleTime = time + candleIndex * 86400;
-            
-                                                
-            
-                                                                const candleUpdate = {
-            
-                                                                    time: currentCandleTime, 
-            
-                                                                    open: open,
-            
-                                                                    high: high,
-            
-                                                                    low: low,
-            
-                                                                    close: close
-            
-                                                                };
-            
-                                                
-            
-                                                                candlestickSeries.update(candleUpdate);
-            
-                                                                // Use false to prevent animation on the scroll itself which can cause jitter
-            
-                                                                chart.timeScale().scrollToRealTime(); 
-            
-                                                
-            
-                                                                currentCandleTicks++;
-            
-                                                                
-            
-                                                                // If we've ticked enough for this candle, finalize it and prepare next
-            
-                                                                if (currentCandleTicks >= ticksPerCandle) {
-            
-                                                                    open = close; // Next candle opens at this close
-            
-                                                                    candleIndex++;
-            
-                                                                    currentCandleTicks = 0;
-            
-                                                                }
-            
-                                                
-            
-                                                                animationFrameId = requestAnimationFrame(animate);
-            
-                                                                if (containerRef.current) {
-            
-                                                                     (containerRef.current as any)._animId = animationFrameId;
-            
-                                                                }
-            
-                                                            };
-            
-                                    
-            
-                                                animate();
+            // Use brighter, more visible colors with increased opacity
+            const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                upColor: 'rgba(38, 166, 154, 0.95)',
+                downColor: 'rgba(239, 83, 80, 0.95)',
+                borderVisible: true,
+                borderUpColor: 'rgba(38, 166, 154, 1)',
+                borderDownColor: 'rgba(239, 83, 80, 1)',
+                wickUpColor: 'rgba(38, 166, 154, 0.9)',
+                wickDownColor: 'rgba(239, 83, 80, 0.9)',
+            });
+
+            // 1. Initial History - More candles for longer visibility
+            const data = [];
+            let time = Math.floor(Date.now() / 1000) - 115 * 86400;
+            let open = 1000;
+
+            // Generate 92 days of history (extra data before crash)
+            for (let i = 0; i < 92; i++) {
+                const volatility = 25;
+                const bias = (Math.random() - 0.48) * volatility;
+                const close = Math.max(10, open + bias);
+                const bodyHigh = Math.max(open, close);
+                const bodyLow = Math.min(open, close);
+                const high = bodyHigh + Math.random() * 15;
+                const low = Math.max(0.1, bodyLow - Math.random() * 15);
+
+                data.push({ time, open, high, low, close });
+                time += 86400;
+                open = close;
+            }
+            candlestickSeries.setData(data);
+            chart.timeScale().fitContent();
+
+            // 2. Smooth Time-Based Animation
+            let animationFrameId: number = 0;
+            let candleIndex = 0;
+            let lastTimestamp = performance.now();
+            const CANDLES_PER_SECOND = 4; // 4 new candles per second for smooth continuous flow
+            const MS_PER_CANDLE = 1000 / CANDLES_PER_SECOND;
+            let accumulatedTime = 0;
+
+            const crashStartCandle = 22; // Delayed crash start for 3 more seconds of normal trading
+
+            const animate = (timestamp: number) => {
+                // Calculate delta time for smooth, frame-rate independent animation
+                const deltaTime = timestamp - lastTimestamp;
+                lastTimestamp = timestamp;
+                accumulatedTime += deltaTime;
+
+                // Generate new candles based on elapsed time, not frames
+                while (accumulatedTime >= MS_PER_CANDLE) {
+                    accumulatedTime -= MS_PER_CANDLE;
+
+                    // Calculate volatility and trend
+                    let volatility = 25 + candleIndex * 0.8;
+                    let trendBias = (Math.random() - 0.48) * 8;
+
+                    // Intensify crash
+                    if (candleIndex > crashStartCandle) {
+                        const crashForce = (candleIndex - crashStartCandle) * 3.5;
+                        trendBias -= crashForce;
+                        volatility += 30;
+                    }
+
+                    const move = trendBias + (Math.random() - 0.5) * volatility;
+                    const close = Math.max(1, open + move);
+
+                    const bodyHigh = Math.max(open, close);
+                    const bodyLow = Math.min(open, close);
+                    const high = bodyHigh + Math.random() * volatility * 0.4;
+                    const low = Math.max(0.1, bodyLow - Math.random() * volatility * 0.4);
+
+                    const currentCandleTime = time + candleIndex * 86400;
+
+                    candlestickSeries.update({
+                        time: currentCandleTime,
+                        open,
+                        high,
+                        low,
+                        close
+                    });
+
+                    open = close;
+                    candleIndex++;
+
+                    // Smooth auto-scroll to keep recent candles visible
+                    chart.timeScale().scrollToPosition(3, true);
+                }
+
+                animationFrameId = requestAnimationFrame(animate);
+                if (containerRef.current) {
+                    (containerRef.current as any)._animId = animationFrameId;
+                }
+            };
+
+            requestAnimationFrame(animate);
             
                                             };
             

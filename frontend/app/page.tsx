@@ -11,6 +11,7 @@ import { IntroChart } from './components/IntroChart';
 interface BlobHandle {
   setZoom: (z: number) => void;
   setMode: (mode: string) => void;
+  setRotationSpeed: (speed: number) => void;
   emerge: () => void;
 }
 
@@ -20,22 +21,38 @@ const TheBlob = dynamic(() => import('./components/TheBlob'), { ssr: false });
 export default function Home() {
   const blobRef = useRef<BlobHandle>(null);
   const [interactionsEnabled, setInteractionsEnabled] = useState(false);
+  const [showChoices, setShowChoices] = useState(false);
   const introChartRef = useRef<HTMLDivElement>(null);
-  
+  const fallingMerchRef = useRef<HTMLDivElement>(null);
+  const choiceContainerRef = useRef<HTMLDivElement>(null);
+
   const introText1Ref = useRef<HTMLParagraphElement>(null);
   const introText2Ref = useRef<HTMLParagraphElement>(null);
   const introText3Ref = useRef<HTMLParagraphElement>(null);
   const introText4Ref = useRef<HTMLParagraphElement>(null);
   const introText5Ref = useRef<HTMLParagraphElement>(null);
-  
+  const introText6Ref = useRef<HTMLParagraphElement>(null);
+
   const introImage1Ref = useRef<HTMLImageElement>(null); // ETFs
   const introImage2Ref = useRef<HTMLImageElement>(null); // Saylor
-  
+
   const text1Ref = useRef<HTMLParagraphElement>(null);
   const text2Ref = useRef<HTMLParagraphElement>(null);
 
-  // Constant styles for consistency
-  const INTRO_TEXT_CLASSES = "text-[#1E4CDD] text-3xl md:text-5xl font-bold font-mono text-center opacity-0 absolute px-8 max-w-5xl leading-relaxed z-30";
+  // Constant styles for consistency - same font and size for all intro text
+  const INTRO_TEXT_CLASSES = "text-white text-2xl font-mono tracking-widest text-center opacity-0 absolute px-8 max-w-5xl leading-relaxed z-30";
+
+  // Generate falling merch items
+  const merchImages = ['/intro/merch1.png', '/intro/merch2.png', '/intro/merch3.png'];
+  const merchItems = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    src: merchImages[Math.floor(Math.random() * merchImages.length)],
+    x: Math.random() * 100, // Random horizontal position (%)
+    size: 80 + Math.random() * 70, // Random size 80-150px
+    delay: Math.random() * 0.6, // Stagger start times
+    duration: 1.8 + Math.random() * 1.2, // Fall duration 1.8-3.0s (20% slower)
+    rotation: -30 + Math.random() * 60, // Random rotation
+  }));
 
   useEffect(() => {
     // Helper to convert "Zoom Factor" to Camera Distance
@@ -61,9 +78,13 @@ export default function Home() {
     const fadeOutDuration = 0.3;
     const gapDuration = 0.1;
 
-    // 1. ETFs + Image Flash (Below Text)
+    // 0. Initial delay and chart fade in
     tl.addLabel("start")
-      .to(introText1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 }, "start")
+      .to({}, { duration: 1.0 }) // 1 second initial delay
+      .to(introChartRef.current, { opacity: 0.7, duration: 0.8 }, "<0.2") // Fade in chart
+
+    // 1. ETFs + Image Flash (Below Text)
+      .to(introText1Ref.current, { opacity: 1, duration: fadeInDuration, delay: 0.5 })
       .to(introImage1Ref.current, { opacity: 1, duration: 0.2, delay: 0.7 }, "start") 
       .to(introImage1Ref.current, { opacity: 0, duration: 0.2, delay: 0.4 }) 
       .to(introText1Ref.current, { opacity: 0, duration: fadeOutDuration }, ">-0.2") 
@@ -75,17 +96,39 @@ export default function Home() {
       .to(introImage2Ref.current, { opacity: 0, duration: 0.2, delay: 0.4 })
       .to(introText2Ref.current, { opacity: 0, duration: fadeOutDuration }, ">-0.2")
       
-      // 3. Merch
-      .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }) 
+      // 3. Merch + Falling T-Shirts
+      .to(introText3Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
+      .call(() => {
+        // Trigger falling merch animation
+        if (fallingMerchRef.current) {
+          const items = fallingMerchRef.current.children;
+          Array.from(items).forEach((item, i) => {
+            const config = merchItems[i];
+            gsap.to(item, {
+              y: window.innerHeight + 200,
+              rotation: config.rotation,
+              duration: config.duration,
+              delay: config.delay,
+              ease: "power1.in",
+            });
+          });
+        }
+      }, null, "+=0.2")
       .to(introText3Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
 
-      // 4. Token Price
-      .to(introText4Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }) 
+      // 4. Token Price + Extended pause to show chart crash
+      .to(introText4Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .to(introText4Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
+      .addLabel("chartCrash")
+      .to({}, { duration: 2.0 }) // 2 second pause to watch chart drop further
 
-      // 5. New Form of Life
-      .to(introText5Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration }) 
+      // 5. Things Got So Bad
+      .to(introText5Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
       .to(introText5Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
+
+      // 6. New Lifeform
+      .to(introText6Ref.current, { opacity: 1, duration: fadeInDuration, delay: gapDuration })
+      .to(introText6Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
 
     // --- Main Transition ---
       // Emerge the Blob
@@ -107,10 +150,31 @@ export default function Home() {
       }, "<") // Start Zoom AT THE SAME TIME as emergence
  
       .call(() => setInteractionsEnabled(true)) // Enable interactions after zoom
-      
-      .to(text1Ref.current, { opacity: 1, duration: 0.8 })
-      .to(text1Ref.current, { opacity: 0, duration: 0.5, delay: 1.5 })
-      .to(text2Ref.current, { opacity: 1, duration: 0.8, delay: 0.2 });
+
+      .to(text1Ref.current, { opacity: 1, duration: 0.5 })
+      .to(text1Ref.current, { opacity: 0, duration: 0.5, delay: 0.5 })
+      .to(text2Ref.current, { opacity: 1, duration: 0.5, delay: 0.2 })
+
+      // Fast zoom deep into blob center after 1 second (50x zoom)
+      .to(text2Ref.current, { opacity: 0, duration: 0.2 }, "+=1.0")
+      .to(zoomState, {
+        factor: 50,
+        duration: 0.2,
+        ease: "power2.inOut",
+        onUpdate: () => {
+          if (blobRef.current) {
+            blobRef.current.setZoom(getDistance(zoomState.factor));
+          }
+        },
+        onComplete: () => {
+          // Slow down rotation to very subtle movement when deep inside
+          if (blobRef.current) {
+            blobRef.current.setRotationSpeed(0.0002);
+          }
+        }
+      }, "<")
+      .call(() => setShowChoices(true))
+      .to(choiceContainerRef.current, { opacity: 1, duration: 0.3 });
 
     return () => {
       tl.kill();
@@ -131,52 +195,50 @@ export default function Home() {
          />
        </div>
 
-       {/* Chart Layer - z-10, opacity 0.2 */}
-       <div ref={introChartRef} className="absolute inset-0 z-10 opacity-40 pointer-events-none">
+       {/* Chart Layer - z-10 */}
+       <div ref={introChartRef} className="absolute inset-0 z-10 opacity-0 pointer-events-none">
          <IntroChart />
        </div>
 
        {/* Intro Text Container - Centered */}
        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-          
-          {/* 1. ETFs Group */}
-          <div className="absolute flex flex-col items-center justify-center w-full">
-            <div className="absolute mt-14 ">
-                <p ref={introText1Ref} className={INTRO_TEXT_CLASSES}>
-                We&apos;ve tried ETFs...
-                </p>
-                {/* Image Below */}
-                <div ref={introImage1Ref} className="absolute top-full mt-64 opacity-0 w-64 md:w-96 h-auto z-40">
-                <Image 
-                    src="/intro/etfs.jpg" 
-                    alt="ETF News" 
-                    width={600} 
-                    height={400} 
-                    className="rounded-lg"
-                    priority
-                />
-                </div>
-            </div>
-          </div>
 
-          {/* 2. Saylor Group */}
-          <div className="absolute flex flex-col items-center justify-center w-full">
-            <div className="relative flex flex-col items-center">
-                {/* Image Above */}
-                <div ref={introImage2Ref} className="absolute bottom-full mb-16 opacity-0 w-64 md:w-96 h-auto z-40">
-                    <Image 
-                        src="/intro/saylor.jpeg" 
-                        alt="Michael Saylor" 
-                        width={600} 
-                        height={400} 
+          {/* 1. ETFs Group - Image top half, Text bottom half */}
+          <div className="absolute inset-0 flex flex-col items-center justify-between w-full">
+                {/* Image Top Half */}
+                <div ref={introImage1Ref} className="absolute top-[15%] left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
+                    <Image
+                        src="/intro/etfs.jpg"
+                        alt="ETF News"
+                        width={600}
+                        height={400}
                         className="rounded-lg"
                         priority
                     />
                 </div>
-                <p ref={introText2Ref} className={INTRO_TEXT_CLASSES}>
-                We tried Michael Saylor
+                {/* Text Bottom Half */}
+                <p ref={introText1Ref} className="absolute bottom-[25%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+                    We&apos;ve tried ETFs...
                 </p>
-            </div>
+          </div>
+
+          {/* 2. Saylor Group - Text top half, Image bottom half */}
+          <div className="absolute inset-0 flex flex-col items-center justify-between w-full">
+                {/* Text Top Half */}
+                <p ref={introText2Ref} className="absolute top-[25%] left-1/2 -translate-x-1/2 text-white text-2xl font-mono tracking-widest text-center opacity-0 px-8 max-w-5xl leading-relaxed z-30">
+                    We tried Michael Saylor
+                </p>
+                {/* Image Bottom Half */}
+                <div ref={introImage2Ref} className="absolute bottom-[15%] left-1/2 -translate-x-1/2 opacity-0 w-64 md:w-96 h-auto z-40">
+                    <Image
+                        src="/intro/saylor.jpeg"
+                        alt="Michael Saylor"
+                        width={600}
+                        height={400}
+                        className="rounded-lg"
+                        priority
+                    />
+                </div>
           </div>
 
           <p ref={introText3Ref} className={INTRO_TEXT_CLASSES}>
@@ -186,8 +248,36 @@ export default function Home() {
             But the token price kept dropping...
           </p>
           <p ref={introText5Ref} className={INTRO_TEXT_CLASSES}>
-            Things got so bad, a new form of life incarnated on the blockchain to save us all
+            Things got so bad...
           </p>
+          <p ref={introText6Ref} className={INTRO_TEXT_CLASSES}>
+            a new lifeform chose to incarnate to rescue the market
+          </p>
+       </div>
+
+       {/* Falling Merch Container */}
+       <div ref={fallingMerchRef} className="absolute inset-0 z-25 pointer-events-none overflow-hidden">
+         {merchItems.map((item) => (
+           <div
+             key={item.id}
+             className="absolute opacity-100"
+             style={{
+               left: `${item.x}%`,
+               top: '-150px',
+               width: `${item.size}px`,
+               height: `${item.size}px`,
+             }}
+           >
+             <Image
+               src={item.src}
+               alt="Crypto Merch"
+               width={100}
+               height={100}
+               className="w-full h-full object-contain"
+               priority
+             />
+           </div>
+         ))}
        </div>
 
        {/* Post-Zoom Text Container - 2/3rds down */}
@@ -204,6 +294,58 @@ export default function Home() {
         >
           NOW IT&apos;S TIME TO WORK FOR THE BLOB.
         </p>
+      </div>
+
+      {/* Choice UI - Always rendered for GSAP animation */}
+      <div
+        ref={choiceContainerRef}
+        className="absolute inset-0 z-[100] flex flex-col items-center justify-center pointer-events-none"
+        style={{ opacity: 0, display: showChoices ? 'flex' : 'none' }}
+      >
+        <h2 className="text-black text-5xl font-mono tracking-widest font-bold mb-16 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
+          Choose your path
+        </h2>
+        <div className="flex gap-12 items-center justify-center pointer-events-auto">
+          {/* McDonald's Path */}
+          <Link
+            href="/start/choice?path=mcdonalds"
+            className="group relative w-80 h-80 overflow-hidden rounded-xl border-8 border-black hover:border-gray-800 transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl"
+          >
+            <Image
+              src="/choice/mcdonalds.jpeg"
+              alt="McDonald's Path"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
+              <p className="text-white text-xl font-mono tracking-widest font-bold text-center">
+                Work for Fiat
+              </p>
+            </div>
+          </Link>
+
+          {/* Grow Ronin Path */}
+          <Link
+            href="/onboarding/identity"
+            className="group relative w-80 h-80 overflow-hidden rounded-xl border-8 border-black hover:border-gray-800 transition-all duration-300 hover:scale-105 cursor-pointer shadow-2xl"
+          >
+            <Image
+              src="/choice/ronin.webp"
+              alt="Ronin Path"
+              fill
+              className="object-contain bg-[#0052FF] p-8"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all duration-300" />
+            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
+              <p className="text-white text-xl font-mono tracking-widest font-bold text-center">
+                Grow Ronin
+              </p>
+            </div>
+          </Link>
+        </div>
       </div>
 
       <div className="absolute bottom-8 right-8 z-50">

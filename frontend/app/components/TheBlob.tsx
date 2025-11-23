@@ -211,6 +211,7 @@ interface ParticleLifeformProps {
     highEnd?: boolean;
     isDark?: boolean;
     interactionsEnabled?: boolean;
+    autoEmerge?: boolean;
 }
 
 const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({ 
@@ -219,7 +220,8 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
     colors = { primary: '#E000E0', secondary: '#FFE000' },
     highEnd = true,
     isDark = false,
-    interactionsEnabled = true
+    interactionsEnabled = true,
+    autoEmerge = false
 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -246,10 +248,11 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         isHighEnd: highEnd,
         isDark: isDark,
         interactionsEnabled: interactionsEnabled,
+        rotationSpeed: 0.002, // Base rotation speed
         // Tween Targets
         targetColor1: new THREE.Color(colors.primary),
         targetColor2: new THREE.Color(colors.secondary),
-        targetAppearance: 0.0, // Start invisible
+        targetAppearance: autoEmerge ? 1.0 : 0.0, // Start invisible unless autoEmerge is true
         targetFogColor: new THREE.Color(isDark ? 0x231e49 : 0x87CEEB)
     });
 
@@ -268,7 +271,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         toggleStyle: (forceState?: boolean) => {
             const newState = forceState !== undefined ? forceState : !stateRef.current.isHighEnd;
             stateRef.current.isHighEnd = newState;
-            
+
             if (particlesRef.current && materialsRef.current && rendererRef.current) {
                 if (newState) {
                     particlesRef.current.material = materialsRef.current.high!;
@@ -281,6 +284,9 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         },
         setZoom: (z: number) => {
             stateRef.current.targetZoom = Math.max(1.0, Math.min(100.0, z));
+        },
+        setRotationSpeed: (speed: number) => {
+            stateRef.current.rotationSpeed = speed;
         },
         emerge: () => {
              if (!uniformsRef.current) return;
@@ -298,13 +304,16 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         sceneRef.current = scene;
 
         // 2. Init Camera
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+
+        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
         camera.position.z = stateRef.current.targetZoom;
         cameraRef.current = camera;
 
         // 3. Init Renderer
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(width, height);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = stateRef.current.isHighEnd ? THREE.ReinhardToneMapping : THREE.NoToneMapping;
         renderer.toneMappingExposure = 1.5;
@@ -315,7 +324,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
 
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.5, 0.4, 0.85);
         bloomPass.threshold = 0.3;
         bloomPass.strength = 1.8;
         bloomPass.radius = 0.8;
@@ -371,12 +380,21 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
 
         // 7. Events
         const handleResize = () => {
-            if (!cameraRef.current || !rendererRef.current || !composerRef.current) return;
-            cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+            if (!cameraRef.current || !rendererRef.current || !composerRef.current || !containerRef.current) return;
+            const w = containerRef.current.clientWidth;
+            const h = containerRef.current.clientHeight;
+            
+            cameraRef.current.aspect = w / h;
             cameraRef.current.updateProjectionMatrix();
-            rendererRef.current.setSize(window.innerWidth, window.innerHeight);
-            composerRef.current.setSize(window.innerWidth, window.innerHeight);
+            rendererRef.current.setSize(w, h);
+            composerRef.current.setSize(w, h);
+            if (bloomPassRef.current) {
+                bloomPassRef.current.resolution.set(w, h);
+            }
         };
+
+        const resizeObserver = new ResizeObserver(() => handleResize());
+        resizeObserver.observe(containerRef.current);
 
         const handleMouseMove = (e: MouseEvent) => {
             if (!stateRef.current.interactionsEnabled) return;
@@ -395,7 +413,6 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
              stateRef.current.targetZoom = Math.max(2.0, Math.min(10.0, stateRef.current.targetZoom));
         };
 
-        window.addEventListener('resize', handleResize);
         document.addEventListener('mousemove', handleMouseMove);
         // document.addEventListener('wheel', handleWheel, { passive: true });
 
@@ -440,7 +457,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
             const targetRotY = stateRef.current.mouseX * 0.02;
             particles.rotation.x = THREE.MathUtils.lerp(particles.rotation.x, targetRotX, 0.04);
             particles.rotation.y = THREE.MathUtils.lerp(particles.rotation.y, particles.rotation.y + (targetRotY + delta * 0.05) * 0.1, 0.04);
-            particles.rotation.y += 0.002;
+            particles.rotation.y += stateRef.current.rotationSpeed;
 
             if (stateRef.current.isHighEnd) {
                 composer.render();
@@ -457,7 +474,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         // Cleanup
         const currentContainer = containerRef.current;
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             document.removeEventListener('mousemove', handleMouseMove);
             // document.removeEventListener('wheel', handleWheel);
             cancelAnimationFrame(requestRef.current);
