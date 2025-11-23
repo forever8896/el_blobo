@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import LandingPage from "./components/LandingPage";
 
 export default function Home() {
   const router = useRouter();
@@ -18,10 +17,14 @@ export default function Home() {
            // Basic check passed, redirect to dashboard which will do full verification
            router.push('/dashboard');
         } else {
-           setIsCheckingSession(false);
+           // No session, redirect to the start of the flow
+           router.push('/start/chart');
         }
       } catch (error) {
         console.error('Error checking session:', error);
+        router.push('/start/chart');
+      } finally {
+        // In case we are still mounted (though push should unmount)
         setIsCheckingSession(false);
       }
     };
@@ -29,15 +32,10 @@ export default function Home() {
     checkSession();
   }, [router]);
 
-  if (isCheckingSession) {
-    return (
-      <div className="fixed inset-0 bg-blob-violet flex items-center justify-center">
-         {/* A simple loading state while we check session */}
-      </div>
-    );
-  }
-
   return (
-    <LandingPage onEnter={() => router.push('/onboarding')} />
+    <div className="fixed inset-0 bg-blob-violet flex items-center justify-center">
+       {/* Simple loading state */}
+       <div className="text-blob-mint animate-pulse font-mono">INITIALIZING...</div>
+    </div>
   );
 }

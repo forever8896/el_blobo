@@ -62,6 +62,13 @@ export default function Dashboard() {
                 depositCompleted: true,
                 interviewResponses: data.user.skills?.responses || []
               });
+
+              // Fetch active projects/jobs
+              // Note: We don't have a dedicated API endpoint for this yet exposed effectively, 
+              // but we can assume we might add one or use the profile if it included it.
+              // For now, we will keep the local state but acknowledging we need to persist it.
+              // TODO: Implement /api/projects endpoint
+              
             } else {
                 // Invalid session, redirect to landing
                 router.push('/');
