@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import gsap from 'gsap';
 
 // Interface for the exposed methods of TheBlob component
 interface BlobHandle {
@@ -17,36 +18,37 @@ export default function Home() {
   const blobRef = useRef<BlobHandle>(null);
 
   useEffect(() => {
-    const duration = 10000; // 10 seconds
-    const startZoomFactor = 30; // "30x" Zoom (Very Close)
-    const endZoomFactor = 2;    // "2x" Zoom (Farther)
-    
     // Helper to convert "Zoom Factor" to Camera Distance
     // Assumes Distance 60 is "1x", so Distance 2 is "30x"
     const getDistance = (factor: number) => 60 / factor;
     
-    const startTime = Date.now();
+    // Initial state
+    const zoomState = { factor: 30 };
+    
+    // Create GSAP Timeline
+    const tl = gsap.timeline({
+      defaults: { ease: "power2.inOut" }
+    });
 
-    const animate = () => {
-      const now = Date.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing (optional, using simple linear for now as requested)
-      const currentFactor = startZoomFactor - (startZoomFactor - endZoomFactor) * progress;
-      const distance = getDistance(currentFactor);
+    // Set initial zoom immediately
+    if (blobRef.current) {
+      blobRef.current.setZoom(getDistance(zoomState.factor));
+    }
 
-      if (blobRef.current) {
-        blobRef.current.setZoom(distance);
+    tl.to(zoomState, {
+      factor: 2,
+      duration: 3,
+      delay: 10,
+      onUpdate: () => {
+        if (blobRef.current) {
+          blobRef.current.setZoom(getDistance(zoomState.factor));
+        }
       }
+    });
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+    return () => {
+      tl.kill();
     };
-
-    // Start the animation loop
-    requestAnimationFrame(animate);
   }, []);
 
   return (
