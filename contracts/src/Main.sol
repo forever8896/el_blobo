@@ -91,15 +91,19 @@ contract Main {
         require(userAddress == msg.sender, "can only self-register");
 
         uint256 price = vault.registrationPrice();
-        require(msg.value >= price, "fee below registration price");
+        // Either enforce exact payment:
+        require(msg.value == price, "wrong registration fee");
+        // or keep >= and only deposit `price` – your choice
 
+        // Register user + sponsors in Users registry
         users.register(userAddress, bigSponsor, smallSponsor);
 
         emit UserRegistered(userAddress);
 
-        (bool ok, ) = payable(owner).call{value: msg.value}("");
-        require(ok, "fee transfer failed");
+        // Store native token in the vault and mint shares to vaultOwner
+        vault.deposit{value: msg.value}(msg.value);
     }
+
 
     function isRegistered(address userAddr) external view returns (bool) {
         return users.isUser(userAddr);

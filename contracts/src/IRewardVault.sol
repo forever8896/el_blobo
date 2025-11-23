@@ -12,4 +12,5 @@ interface IRewardVault {
     function transferShares(uint256 shares, address receiver) external;
     function owner() external view returns (address);
     function transferOwnership(address newOwner) external;
+    function deposit(uint256 assets) external payable returns (uint256 shares);
 }
