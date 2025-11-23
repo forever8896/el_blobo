@@ -450,7 +450,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         };
 
         // Trigger emergence
-        stateRef.current.targetAppearance = 1.0;
+        // stateRef.current.targetAppearance = 1.0; // DISABLED: Wait for explicit emerge() call
 
         animate();
 

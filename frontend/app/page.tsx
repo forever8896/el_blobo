@@ -11,6 +11,7 @@ import { IntroChart } from './components/IntroChart';
 interface BlobHandle {
   setZoom: (z: number) => void;
   setMode: (mode: string) => void;
+  emerge: () => void;
 }
 
 // Dynamically import TheBlob to avoid SSR issues with Three.js
@@ -87,6 +88,14 @@ export default function Home() {
       .to(introText5Ref.current, { opacity: 0, duration: fadeOutDuration, delay: holdDuration })
 
     // --- Main Transition ---
+      // Emerge the Blob
+      .to(introChartRef.current, { opacity: 0, duration: 1 }, "<")
+      
+      .call(() => {
+        if (blobRef.current) blobRef.current.emerge();
+      })
+           // Fade out chart simultaneously with Zoom
+      
       .to(zoomState, {
         factor: 2,
         duration: 2.0,
@@ -95,9 +104,8 @@ export default function Home() {
             blobRef.current.setZoom(getDistance(zoomState.factor));
           }
         }
-      })
-      // Fade out chart simultaneously with Zoom
-      .to(introChartRef.current, { opacity: 0, duration: 1.5 }, "<")
+      }, "<") // Start Zoom AT THE SAME TIME as emergence
+ 
       .call(() => setInteractionsEnabled(true)) // Enable interactions after zoom
       
       .to(text1Ref.current, { opacity: 1, duration: 0.8 })
@@ -115,7 +123,7 @@ export default function Home() {
          <TheBlob 
             ref={blobRef}
             initialMode="idle" 
-            initialZoom={2.0} // Starting distance (60 / 30)
+            initialZoom={0} // Starting distance (60 / 30)
             highEnd={true}
             isDark={true}
             colors={{ primary: '#1E4CDD', secondary: '#4FFFB0' }}
@@ -124,7 +132,7 @@ export default function Home() {
        </div>
 
        {/* Chart Layer - z-10, opacity 0.2 */}
-       <div ref={introChartRef} className="absolute inset-0 z-10 opacity-20 pointer-events-none">
+       <div ref={introChartRef} className="absolute inset-0 z-10 opacity-40 pointer-events-none">
          <IntroChart />
        </div>
 
@@ -133,18 +141,18 @@ export default function Home() {
           
           {/* 1. ETFs Group */}
           <div className="absolute flex flex-col items-center justify-center w-full">
-            <div className="relative flex flex-col items-center">
+            <div className="absolute mt-14 ">
                 <p ref={introText1Ref} className={INTRO_TEXT_CLASSES}>
                 We&apos;ve tried ETFs...
                 </p>
                 {/* Image Below */}
-                <div ref={introImage1Ref} className="absolute top-full mt-16 opacity-0 w-64 md:w-96 h-auto z-40">
+                <div ref={introImage1Ref} className="absolute top-full mt-64 opacity-0 w-64 md:w-96 h-auto z-40">
                 <Image 
                     src="/intro/etfs.jpg" 
                     alt="ETF News" 
                     width={600} 
                     height={400} 
-                    className="rounded-lg border-2 border-[#1E4CDD] shadow-[0_0_20px_rgba(30,76,221,0.5)]"
+                    className="rounded-lg"
                     priority
                 />
                 </div>
@@ -161,7 +169,7 @@ export default function Home() {
                         alt="Michael Saylor" 
                         width={600} 
                         height={400} 
-                        className="rounded-lg border-2 border-[#1E4CDD] shadow-[0_0_20px_rgba(30,76,221,0.5)]"
+                        className="rounded-lg"
                         priority
                     />
                 </div>

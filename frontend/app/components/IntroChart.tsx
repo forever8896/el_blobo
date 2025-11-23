@@ -62,167 +62,141 @@ export const IntroChart = () => {
                         candlestickSeries.setData(data);
                         chart.timeScale().fitContent();
             
-                                                // 2. Animation Loop (The Dump)
+                                                            // 2. Animation Loop (The Dump)
             
-                                                let animationFrameId: number = 0;
+                                                            let animationFrameId: number = 0;
             
-                                                let lastUpdate = Date.now();
+                                                            let tickIndex = 0; // Total animation frames
             
-                                                let tickIndex = 0; // Total animation frames
+                                                            let candleIndex = 0; // Actual candles added
             
-                                                let candleIndex = 0; // Actual candles added
+                                                            const ticksPerCandle = 6; // Increased for smooth 60fps (approx 10 candles/sec)
             
-                                                const ticksPerCandle = 3; // How many updates before closing a candle
+                                                            let currentCandleTicks = 0;
             
-                                                let currentCandleTicks = 0;
+                                                            
+            
+                                                            // Start crash relative to candle count
+            
+                                                            const crashStartCandle = 10; 
             
                                                 
             
-                                                // Start crash relative to candle count
+                                                            const animate = () => {
             
-                                                const crashStartCandle = 10; 
+                                                                // No throttle: Run at native refresh rate (usually 60fps) for maximum smoothness
             
-                                    
+                                                                tickIndex++;
             
-                                                const animate = () => {
+                                                
             
-                                                    const now = Date.now();
+                                                                // Determine volatility & trend based on CANDLE index (macro trend)
             
-                                                    if (now - lastUpdate > 40) { // 25fps updates
+                                                                let volatility = 15 + candleIndex * 0.5;
             
-                                                        lastUpdate = now;
+                                                                let trendBias = (Math.random() - 0.5) * 5; 
             
-                                                        tickIndex++;
+                                                
             
-                                    
+                                                                // Crash Logic
             
-                                                        // Determine volatility & trend based on CANDLE index (macro trend)
+                                                                if (candleIndex > crashStartCandle) {
             
-                                                        let volatility = 15 + candleIndex * 0.5;
+                                                                    trendBias -= (candleIndex - crashStartCandle) * 2.0; // Strong down trend
             
-                                                        let trendBias = (Math.random() - 0.5) * 5; 
+                                                                    volatility += 20;
             
-                                    
+                                                                }
             
-                                                        // Crash Logic
+                                                
             
-                                                        if (candleIndex > crashStartCandle) {
+                                                                // Random walk for the "current price" (close)
             
-                                                            trendBias -= (candleIndex - crashStartCandle) * 2.0; // Strong down trend
+                                                                let move = trendBias + (Math.random() - 0.5) * volatility;
             
-                                                            volatility += 20;
+                                                                let currentPrice = open + move;
             
-                                                        }
+                                                                
             
-                                    
+                                                                if (currentPrice < 1) currentPrice = 1;
             
-                                                        // Random walk for the "current price" (close)
+                                                
             
-                                                        // We start 'close' at 'open' and walk it
+                                                                const close = currentPrice;
             
-                                                        let move = trendBias + (Math.random() - 0.5) * volatility;
+                                                                
             
-                                                        let currentPrice = open + move;
+                                                                // Wicks need to contain the open and close
             
-                                                        
+                                                                const bodyHigh = Math.max(open, close);
             
-                                                        if (currentPrice < 1) currentPrice = 1;
+                                                                const bodyLow = Math.min(open, close);
             
-                                    
+                                                                
             
-                                                        // Update High/Low based on this new price
+                                                                const high = bodyHigh + Math.random() * volatility * 0.2;
             
-                                                        // For a developing candle, high/low expands
+                                                                let low = bodyLow - Math.random() * volatility * 0.2;
             
-                                                        // But since we are just generating "ticks" that represent the final state for simplicity in this loop:
+                                                                if (low < 0.1) low = 0.1;
             
-                                                        // We will just generate a valid candle "snapshot" for this frame.
+                                                
             
-                                                        
+                                                                const currentCandleTime = time + candleIndex * 86400;
             
-                                                        // Actually, to make it look like it's "ticking", we should update the current candle object.
+                                                
             
-                                                        // But simpler for this visual effect: generate a 'final' candle for this tick step.
+                                                                const candleUpdate = {
             
-                                                        
+                                                                    time: currentCandleTime, 
             
-                                                        const close = currentPrice;
+                                                                    open: open,
             
-                                                        
+                                                                    high: high,
             
-                                                        // Wicks need to contain the open and close
+                                                                    low: low,
             
-                                                        // We'll make them relative to the body size for realism
+                                                                    close: close
             
-                                                        const bodyHigh = Math.max(open, close);
+                                                                };
             
-                                                        const bodyLow = Math.min(open, close);
+                                                
             
-                                                        
+                                                                candlestickSeries.update(candleUpdate);
             
-                                                        // Wicks grow slightly with volatility
+                                                                // Use false to prevent animation on the scroll itself which can cause jitter
             
-                                                        const high = bodyHigh + Math.random() * volatility * 0.2;
+                                                                chart.timeScale().scrollToRealTime(); 
             
-                                                        let low = bodyLow - Math.random() * volatility * 0.2;
+                                                
             
-                                                        if (low < 0.1) low = 0.1;
+                                                                currentCandleTicks++;
             
-                                    
+                                                                
             
-                                                        const currentCandleTime = time + candleIndex * 86400;
+                                                                // If we've ticked enough for this candle, finalize it and prepare next
             
-                                    
+                                                                if (currentCandleTicks >= ticksPerCandle) {
             
-                                                        const candleUpdate = {
+                                                                    open = close; // Next candle opens at this close
             
-                                                            time: currentCandleTime, 
+                                                                    candleIndex++;
             
-                                                            open: open,
+                                                                    currentCandleTicks = 0;
             
-                                                            high: high,
+                                                                }
             
-                                                            low: low,
+                                                
             
-                                                            close: close
+                                                                animationFrameId = requestAnimationFrame(animate);
             
-                                                        };
+                                                                if (containerRef.current) {
             
-                                    
+                                                                     (containerRef.current as any)._animId = animationFrameId;
             
-                                                        candlestickSeries.update(candleUpdate);
+                                                                }
             
-                                                        chart.timeScale().scrollToRealTime();
-            
-                                    
-            
-                                                        currentCandleTicks++;
-            
-                                                        
-            
-                                                        // If we've ticked enough for this candle, finalize it and prepare next
-            
-                                                        if (currentCandleTicks >= ticksPerCandle) {
-            
-                                                            open = close; // Next candle opens at this close
-            
-                                                            candleIndex++;
-            
-                                                            currentCandleTicks = 0;
-            
-                                                        }
-            
-                                                    }
-            
-                                                    animationFrameId = requestAnimationFrame(animate);
-            
-                                                    if (containerRef.current) {
-            
-                                                         (containerRef.current as any)._animId = animationFrameId;
-            
-                                                    }
-            
-                                                };
+                                                            };
             
                                     
             
