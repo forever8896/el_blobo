@@ -210,6 +210,7 @@ interface ParticleLifeformProps {
     colors?: { primary: string; secondary: string };
     highEnd?: boolean;
     isDark?: boolean;
+    interactionsEnabled?: boolean;
 }
 
 const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({ 
@@ -217,7 +218,8 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
     initialZoom = 3.8,
     colors = { primary: '#E000E0', secondary: '#FFE000' },
     highEnd = true,
-    isDark = false
+    isDark = false,
+    interactionsEnabled = true
 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -243,6 +245,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         targetZoom: initialZoom,
         isHighEnd: highEnd,
         isDark: isDark,
+        interactionsEnabled: interactionsEnabled,
         // Tween Targets
         targetColor1: new THREE.Color(colors.primary),
         targetColor2: new THREE.Color(colors.secondary),
@@ -376,6 +379,8 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
         };
 
         const handleMouseMove = (e: MouseEvent) => {
+            if (!stateRef.current.interactionsEnabled) return;
+
             stateRef.current.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
             stateRef.current.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -469,6 +474,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
 
     // Handle Prop Updates
     useEffect(() => {
+        stateRef.current.interactionsEnabled = interactionsEnabled;
         const fogHex = isDark ? 0x231e49 : 0x87CEEB;
         stateRef.current.targetFogColor.setHex(fogHex);
         
@@ -476,7 +482,7 @@ const ParticleLifeform = forwardRef<unknown, ParticleLifeformProps>(({
             bloomPassRef.current.strength = isDark ? 2.2 : 1.8;
             bloomPassRef.current.threshold = isDark ? 0.1 : 0.3;
         }
-    }, [isDark]);
+    }, [isDark, interactionsEnabled]);
 
     return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 });

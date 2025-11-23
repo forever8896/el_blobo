@@ -1,0 +1,2103 @@
+diff --git a/node_modules/thread-stream/LICENSE b/node_modules/thread-stream/LICENSE
+deleted file mode 100644
+index 2c1a038..0000000
+--- a/node_modules/thread-stream/LICENSE
++++ /dev/null
+@@ -1,21 +0,0 @@
+-MIT License
+-
+-Copyright (c) 2021 Matteo Collina
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy
+-of this software and associated documentation files (the "Software"), to deal
+-in the Software without restriction, including without limitation the rights
+-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-copies of the Software, and to permit persons to whom the Software is
+-furnished to do so, subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-SOFTWARE.
+diff --git a/node_modules/thread-stream/README.md b/node_modules/thread-stream/README.md
+deleted file mode 100644
+index 1a67c29..0000000
+--- a/node_modules/thread-stream/README.md
++++ /dev/null
+@@ -1,90 +0,0 @@
+-# thread-stream
+-[![npm version](https://img.shields.io/npm/v/thread-stream)](https://www.npmjs.com/package/thread-stream)
+-[![Build Status](https://img.shields.io/github/workflow/status/pinojs/thread-stream/CI)](https://github.com/pinojs/thread-stream/actions)
+-[![Known Vulnerabilities](https://snyk.io/test/github/pinojs/thread-stream/badge.svg)](https://snyk.io/test/github/pinojs/thread-stream)
+-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
+-
+-A streaming way to send data to a Node.js Worker Thread.
+-
+-## install
+-
+-```sh
+-npm i thread-stream
+-```
+-
+-## Usage
+-
+-```js
+-'use strict'
+-
+-const ThreadStream = require('thread-stream')
+-const { join } = require('path')
+-
+-const stream = new ThreadStream({
+-  filename: join(__dirname, 'worker.js'),
+-  workerData: { dest },
+-  workerOpts: {}, // Other options to be passed to Worker
+-  sync: false, // default
+-})
+-
+-stream.write('hello')
+-
+-// Asynchronous flushing
+-stream.flush(function () {
+-  stream.write(' ')
+-  stream.write('world')
+-
+-  // Synchronous flushing
+-  stream.flushSync()
+-  stream.end()
+-})
+-```
+-
+-In `worker.js`:
+-
+-```js
+-'use strict'
+-
+-const fs = require('fs')
+-const { once } = require('events')
+-
+-async function run (opts) {
+-  const stream = fs.createWriteStream(opts.dest)
+-  await once(stream, 'open')
+-  return stream
+-}
+-
+-module.exports = run
+-```
+-
+-Make sure that the stream emits `'close'` when the stream completes.
+-This can usually be achieved by passing the [`autoDestroy: true`](https://nodejs.org/api/stream.html#stream_new_stream_writable_options)
+-flag your stream classes.
+-
+-The underlining worker is automatically closed if the stream is garbage collected.
+-
+-
+-### External modules
+-
+-You may use this module within compatible external modules, that exports the `worker.js` interface.
+-
+-```js
+-const ThreadStream = require('thread-stream')
+-
+-const modulePath = require.resolve('pino-elasticsearch')
+-
+-const stream = new ThreadStream({
+-  filename: modulePath,
+-  workerData: { node: 'http://localhost:9200' }
+-})
+-
+-stream.write('log to elasticsearch!')
+-stream.flushSync()
+-stream.end()
+-```
+-
+-This module works with `yarn` in PnP (plug'n play) mode too!
+-
+-## License
+-
+-MIT
+diff --git a/node_modules/thread-stream/bench.js b/node_modules/thread-stream/bench.js
+deleted file mode 100644
+index 9f0aa38..0000000
+--- a/node_modules/thread-stream/bench.js
++++ /dev/null
+@@ -1,85 +0,0 @@
+-'use strict'
+-
+-const bench = require('fastbench')
+-const SonicBoom = require('sonic-boom')
+-const ThreadStream = require('.')
+-const Console = require('console').Console
+-const fs = require('fs')
+-const { join } = require('path')
+-
+-const core = fs.createWriteStream('/dev/null')
+-const fd = fs.openSync('/dev/null', 'w')
+-const sonic = new SonicBoom({ fd })
+-const sonicSync = new SonicBoom({ fd, sync: true })
+-const out = fs.createWriteStream('/dev/null')
+-const dummyConsole = new Console(out)
+-const threadStreamSync = new ThreadStream({
+-  filename: join(__dirname, 'test', 'to-file.js'),
+-  workerData: { dest: '/dev/null' },
+-  bufferSize: 4 * 1024 * 1024,
+-  sync: true
+-})
+-const threadStreamAsync = new ThreadStream({
+-  filename: join(__dirname, 'test', 'to-file.js'),
+-  workerData: { dest: '/dev/null' },
+-  bufferSize: 4 * 1024 * 1024,
+-  sync: false
+-})
+-
+-const MAX = 10000
+-
+-let str = ''
+-
+-for (let i = 0; i < 10; i++) {
+-  str += 'hello'
+-}
+-
+-setTimeout(doBench, 100)
+-
+-const run = bench([
+-  function benchThreadStreamSync (cb) {
+-    for (let i = 0; i < MAX; i++) {
+-      threadStreamSync.write(str)
+-    }
+-    setImmediate(cb)
+-  },
+-  function benchThreadStreamAsync (cb) {
+-    threadStreamAsync.once('drain', cb)
+-    for (let i = 0; i < MAX; i++) {
+-      threadStreamAsync.write(str)
+-    }
+-  },
+-  function benchSonic (cb) {
+-    sonic.once('drain', cb)
+-    for (let i = 0; i < MAX; i++) {
+-      sonic.write(str)
+-    }
+-  },
+-  function benchSonicSync (cb) {
+-    sonicSync.once('drain', cb)
+-    for (let i = 0; i < MAX; i++) {
+-      sonicSync.write(str)
+-    }
+-  },
+-  function benchCore (cb) {
+-    core.once('drain', cb)
+-    for (let i = 0; i < MAX; i++) {
+-      core.write(str)
+-    }
+-  },
+-  function benchConsole (cb) {
+-    for (let i = 0; i < MAX; i++) {
+-      dummyConsole.log(str)
+-    }
+-    setImmediate(cb)
+-  }
+-], 1000)
+-
+-function doBench () {
+-  run(function () {
+-    run(function () {
+-      // TODO figure out why it does not shut down
+-      process.exit(0)
+-    })
+-  })
+-}
+diff --git a/node_modules/thread-stream/browser.js b/node_modules/thread-stream/browser.js
+new file mode 100644
+index 0000000..fbf907a
+--- /dev/null
++++ b/node_modules/thread-stream/browser.js
+@@ -0,0 +1,12 @@
++'use strict'
++
++function ThreadStream () {
++  throw new Error('thread-stream is not supported in the browser')
++}
++
++ThreadStream.prototype.write = function () {}
++ThreadStream.prototype.end = function () {}
++ThreadStream.prototype.emit = function () {}
++ThreadStream.prototype.on = function () {}
++
++module.exports = ThreadStream
+diff --git a/node_modules/thread-stream/index.js b/node_modules/thread-stream/index.js
+index 1db9f9f..dc98e97 100644
+--- a/node_modules/thread-stream/index.js
++++ b/node_modules/thread-stream/index.js
+@@ -1,503 +1,12 @@
+ 'use strict'
+ 
+-const { EventEmitter } = require('events')
+-const { Worker } = require('worker_threads')
+-const { join } = require('path')
+-const { pathToFileURL } = require('url')
+-const { wait } = require('./lib/wait')
+-const {
+-  WRITE_INDEX,
+-  READ_INDEX
+-} = require('./lib/indexes')
+-const buffer = require('buffer')
+-const assert = require('assert')
+-
+-const kImpl = Symbol('kImpl')
+-
+-// V8 limit for string size
+-const MAX_STRING = buffer.constants.MAX_STRING_LENGTH
+-
+-class FakeWeakRef {
+-  constructor (value) {
+-    this._value = value
+-  }
+-
+-  deref () {
+-    return this._value
+-  }
+-}
+-
+-const FinalizationRegistry = global.FinalizationRegistry || class FakeFinalizationRegistry {
+-  register () {}
+-  unregister () {}
+-}
+-
+-const WeakRef = global.WeakRef || FakeWeakRef
+-
+-const registry = new FinalizationRegistry((worker) => {
+-  if (worker.exited) {
+-    return
+-  }
+-  worker.terminate()
+-})
+-
+-function createWorker (stream, opts) {
+-  const { filename, workerData } = opts
+-
+-  const bundlerOverrides = '__bundlerPathsOverrides' in globalThis ? globalThis.__bundlerPathsOverrides : {}
+-  const toExecute = bundlerOverrides['thread-stream-worker'] || join(__dirname, 'lib', 'worker.js')
+-
+-  const worker = new Worker(toExecute, {
+-    ...opts.workerOpts,
+-    workerData: {
+-      filename: filename.indexOf('file://') === 0
+-        ? filename
+-        : pathToFileURL(filename).href,
+-      dataBuf: stream[kImpl].dataBuf,
+-      stateBuf: stream[kImpl].stateBuf,
+-      workerData
+-    }
+-  })
+-
+-  // We keep a strong reference for now,
+-  // we need to start writing first
+-  worker.stream = new FakeWeakRef(stream)
+-
+-  worker.on('message', onWorkerMessage)
+-  worker.on('exit', onWorkerExit)
+-  registry.register(stream, worker)
+-
+-  return worker
+-}
+-
+-function drain (stream) {
+-  assert(!stream[kImpl].sync)
+-  if (stream[kImpl].needDrain) {
+-    stream[kImpl].needDrain = false
+-    stream.emit('drain')
+-  }
+-}
+-
+-function nextFlush (stream) {
+-  const writeIndex = Atomics.load(stream[kImpl].state, WRITE_INDEX)
+-  let leftover = stream[kImpl].data.length - writeIndex
+-
+-  if (leftover > 0) {
+-    if (stream[kImpl].buf.length === 0) {
+-      stream[kImpl].flushing = false
+-
+-      if (stream[kImpl].ending) {
+-        end(stream)
+-      } else if (stream[kImpl].needDrain) {
+-        process.nextTick(drain, stream)
+-      }
+-
+-      return
+-    }
+-
+-    let toWrite = stream[kImpl].buf.slice(0, leftover)
+-    let toWriteBytes = Buffer.byteLength(toWrite)
+-    if (toWriteBytes <= leftover) {
+-      stream[kImpl].buf = stream[kImpl].buf.slice(leftover)
+-      // process._rawDebug('writing ' + toWrite.length)
+-      write(stream, toWrite, nextFlush.bind(null, stream))
+-    } else {
+-      // multi-byte utf-8
+-      stream.flush(() => {
+-        // err is already handled in flush()
+-        if (stream.destroyed) {
+-          return
+-        }
+-
+-        Atomics.store(stream[kImpl].state, READ_INDEX, 0)
+-        Atomics.store(stream[kImpl].state, WRITE_INDEX, 0)
+-
+-        // Find a toWrite length that fits the buffer
+-        // it must exists as the buffer is at least 4 bytes length
+-        // and the max utf-8 length for a char is 4 bytes.
+-        while (toWriteBytes > stream[kImpl].data.length) {
+-          leftover = leftover / 2
+-          toWrite = stream[kImpl].buf.slice(0, leftover)
+-          toWriteBytes = Buffer.byteLength(toWrite)
+-        }
+-        stream[kImpl].buf = stream[kImpl].buf.slice(leftover)
+-        write(stream, toWrite, nextFlush.bind(null, stream))
+-      })
+-    }
+-  } else if (leftover === 0) {
+-    if (writeIndex === 0 && stream[kImpl].buf.length === 0) {
+-      // we had a flushSync in the meanwhile
+-      return
+-    }
+-    stream.flush(() => {
+-      Atomics.store(stream[kImpl].state, READ_INDEX, 0)
+-      Atomics.store(stream[kImpl].state, WRITE_INDEX, 0)
+-      nextFlush(stream)
+-    })
+-  } else {
+-    // This should never happen
+-    throw new Error('overwritten')
+-  }
+-}
+-
+-function onWorkerMessage (msg) {
+-  const stream = this.stream.deref()
+-  if (stream === undefined) {
+-    this.exited = true
+-    // Terminate the worker.
+-    this.terminate()
+-    return
+-  }
+-
+-  switch (msg.code) {
+-    case 'READY':
+-      // Replace the FakeWeakRef with a
+-      // proper one.
+-      this.stream = new WeakRef(stream)
+-
+-      stream.flush(() => {
+-        stream[kImpl].ready = true
+-        stream.emit('ready')
+-      })
+-      break
+-    case 'ERROR':
+-      destroy(stream, msg.err)
+-      break
+-    default:
+-      throw new Error('this should not happen: ' + msg.code)
+-  }
+-}
+-
+-function onWorkerExit (code) {
+-  const stream = this.stream.deref()
+-  if (stream === undefined) {
+-    // Nothing to do, the worker already exit
+-    return
+-  }
+-  registry.unregister(stream)
+-  stream.worker.exited = true
+-  stream.worker.off('exit', onWorkerExit)
+-  destroy(stream, code !== 0 ? new Error('The worker thread exited') : null)
+-}
+-
+-class ThreadStream extends EventEmitter {
+-  constructor (opts = {}) {
+-    super()
+-
+-    if (opts.bufferSize < 4) {
+-      throw new Error('bufferSize must at least fit a 4-byte utf-8 char')
+-    }
+-
+-    this[kImpl] = {}
+-    this[kImpl].stateBuf = new SharedArrayBuffer(128)
+-    this[kImpl].state = new Int32Array(this[kImpl].stateBuf)
+-    this[kImpl].dataBuf = new SharedArrayBuffer(opts.bufferSize || 4 * 1024 * 1024)
+-    this[kImpl].data = Buffer.from(this[kImpl].dataBuf)
+-    this[kImpl].sync = opts.sync || false
+-    this[kImpl].ending = false
+-    this[kImpl].ended = false
+-    this[kImpl].needDrain = false
+-    this[kImpl].destroyed = false
+-    this[kImpl].flushing = false
+-    this[kImpl].ready = false
+-    this[kImpl].finished = false
+-    this[kImpl].errored = null
+-    this[kImpl].closed = false
+-    this[kImpl].buf = ''
+-
+-    // TODO (fix): Make private?
+-    this.worker = createWorker(this, opts) // TODO (fix): make private
+-  }
+-
+-  write (data) {
+-    if (this[kImpl].destroyed) {
+-      throw new Error('the worker has exited')
+-    }
+-
+-    if (this[kImpl].ending) {
+-      throw new Error('the worker is ending')
+-    }
+-
+-    if (this[kImpl].flushing && this[kImpl].buf.length + data.length >= MAX_STRING) {
+-      try {
+-        writeSync(this)
+-        this[kImpl].flushing = true
+-      } catch (err) {
+-        destroy(this, err)
+-        return false
+-      }
+-    }
+-
+-    this[kImpl].buf += data
+-
+-    if (this[kImpl].sync) {
+-      try {
+-        writeSync(this)
+-        return true
+-      } catch (err) {
+-        destroy(this, err)
+-        return false
+-      }
+-    }
+-
+-    if (!this[kImpl].flushing) {
+-      this[kImpl].flushing = true
+-      setImmediate(nextFlush, this)
+-    }
+-
+-    this[kImpl].needDrain = this[kImpl].data.length - this[kImpl].buf.length - Atomics.load(this[kImpl].state, WRITE_INDEX) <= 0
+-    return !this[kImpl].needDrain
+-  }
+-
+-  end () {
+-    if (this[kImpl].destroyed) {
+-      return
+-    }
+-
+-    this[kImpl].ending = true
+-    end(this)
+-  }
+-
+-  flush (cb) {
+-    if (this[kImpl].destroyed) {
+-      if (typeof cb === 'function') {
+-        process.nextTick(cb, new Error('the worker has exited'))
+-      }
+-      return
+-    }
+-
+-    // TODO write all .buf
+-    const writeIndex = Atomics.load(this[kImpl].state, WRITE_INDEX)
+-    // process._rawDebug(`(flush) readIndex (${Atomics.load(this.state, READ_INDEX)}) writeIndex (${Atomics.load(this.state, WRITE_INDEX)})`)
+-    wait(this[kImpl].state, READ_INDEX, writeIndex, Infinity, (err, res) => {
+-      if (err) {
+-        destroy(this, err)
+-        process.nextTick(cb, err)
+-        return
+-      }
+-      if (res === 'not-equal') {
+-        // TODO handle deadlock
+-        this.flush(cb)
+-        return
+-      }
+-      process.nextTick(cb)
+-    })
+-  }
+-
+-  flushSync () {
+-    if (this[kImpl].destroyed) {
+-      return
+-    }
+-
+-    writeSync(this)
+-    flushSync(this)
+-  }
+-
+-  unref () {
+-    this.worker.unref()
+-  }
+-
+-  ref () {
+-    this.worker.ref()
+-  }
+-
+-  get ready () {
+-    return this[kImpl].ready
+-  }
+-
+-  get destroyed () {
+-    return this[kImpl].destroyed
+-  }
+-
+-  get closed () {
+-    return this[kImpl].closed
+-  }
+-
+-  get writable () {
+-    return !this[kImpl].destroyed && !this[kImpl].ending
+-  }
+-
+-  get writableEnded () {
+-    return this[kImpl].ending
+-  }
+-
+-  get writableFinished () {
+-    return this[kImpl].finished
+-  }
+-
+-  get writableNeedDrain () {
+-    return this[kImpl].needDrain
+-  }
+-
+-  get writableObjectMode () {
+-    return false
+-  }
+-
+-  get writableErrored () {
+-    return this[kImpl].errored
+-  }
+-}
+-
+-function destroy (stream, err) {
+-  if (stream[kImpl].destroyed) {
+-    return
+-  }
+-  stream[kImpl].destroyed = true
+-
+-  if (err) {
+-    stream[kImpl].errored = err
+-    stream.emit('error', err)
+-  }
+-
+-  if (!stream.worker.exited) {
+-    stream.worker.terminate()
+-      .catch(() => {})
+-      .then(() => {
+-        stream[kImpl].closed = true
+-        stream.emit('close')
+-      })
+-  } else {
+-    setImmediate(() => {
+-      stream[kImpl].closed = true
+-      stream.emit('close')
+-    })
+-  }
+-}
+-
+-function write (stream, data, cb) {
+-  // data is smaller than the shared buffer length
+-  const current = Atomics.load(stream[kImpl].state, WRITE_INDEX)
+-  const length = Buffer.byteLength(data)
+-  stream[kImpl].data.write(data, current)
+-  Atomics.store(stream[kImpl].state, WRITE_INDEX, current + length)
+-  Atomics.notify(stream[kImpl].state, WRITE_INDEX)
+-  cb()
+-  return true
++function ThreadStream () {
++  // No-op stub for Turbopack compatibility
+ }
+ 
+-function end (stream) {
+-  if (stream[kImpl].ended || !stream[kImpl].ending || stream[kImpl].flushing) {
+-    return
+-  }
+-  stream[kImpl].ended = true
+-
+-  try {
+-    stream.flushSync()
+-
+-    let readIndex = Atomics.load(stream[kImpl].state, READ_INDEX)
+-
+-    // process._rawDebug('writing index')
+-    Atomics.store(stream[kImpl].state, WRITE_INDEX, -1)
+-    // process._rawDebug(`(end) readIndex (${Atomics.load(stream.state, READ_INDEX)}) writeIndex (${Atomics.load(stream.state, WRITE_INDEX)})`)
+-    Atomics.notify(stream[kImpl].state, WRITE_INDEX)
+-
+-    // Wait for the process to complete
+-    let spins = 0
+-    while (readIndex !== -1) {
+-      // process._rawDebug(`read = ${read}`)
+-      Atomics.wait(stream[kImpl].state, READ_INDEX, readIndex, 1000)
+-      readIndex = Atomics.load(stream[kImpl].state, READ_INDEX)
+-
+-      if (readIndex === -2) {
+-        throw new Error('end() failed')
+-      }
+-
+-      if (++spins === 10) {
+-        throw new Error('end() took too long (10s)')
+-      }
+-    }
+-
+-    process.nextTick(() => {
+-      stream[kImpl].finished = true
+-      stream.emit('finish')
+-    })
+-  } catch (err) {
+-    destroy(stream, err)
+-  }
+-  // process._rawDebug('end finished...')
+-}
+-
+-function writeSync (stream) {
+-  const cb = () => {
+-    if (stream[kImpl].ending) {
+-      end(stream)
+-    } else if (stream[kImpl].needDrain) {
+-      process.nextTick(drain, stream)
+-    }
+-  }
+-  stream[kImpl].flushing = false
+-
+-  while (stream[kImpl].buf.length !== 0) {
+-    const writeIndex = Atomics.load(stream[kImpl].state, WRITE_INDEX)
+-    let leftover = stream[kImpl].data.length - writeIndex
+-    if (leftover === 0) {
+-      flushSync(stream)
+-      Atomics.store(stream[kImpl].state, READ_INDEX, 0)
+-      Atomics.store(stream[kImpl].state, WRITE_INDEX, 0)
+-      continue
+-    } else if (leftover < 0) {
+-      // stream should never happen
+-      throw new Error('overwritten')
+-    }
+-
+-    let toWrite = stream[kImpl].buf.slice(0, leftover)
+-    let toWriteBytes = Buffer.byteLength(toWrite)
+-    if (toWriteBytes <= leftover) {
+-      stream[kImpl].buf = stream[kImpl].buf.slice(leftover)
+-      // process._rawDebug('writing ' + toWrite.length)
+-      write(stream, toWrite, cb)
+-    } else {
+-      // multi-byte utf-8
+-      flushSync(stream)
+-      Atomics.store(stream[kImpl].state, READ_INDEX, 0)
+-      Atomics.store(stream[kImpl].state, WRITE_INDEX, 0)
+-
+-      // Find a toWrite length that fits the buffer
+-      // it must exists as the buffer is at least 4 bytes length
+-      // and the max utf-8 length for a char is 4 bytes.
+-      while (toWriteBytes > stream[kImpl].buf.length) {
+-        leftover = leftover / 2
+-        toWrite = stream[kImpl].buf.slice(0, leftover)
+-        toWriteBytes = Buffer.byteLength(toWrite)
+-      }
+-      stream[kImpl].buf = stream[kImpl].buf.slice(leftover)
+-      write(stream, toWrite, cb)
+-    }
+-  }
+-}
+-
+-function flushSync (stream) {
+-  if (stream[kImpl].flushing) {
+-    throw new Error('unable to flush while flushing')
+-  }
+-
+-  // process._rawDebug('flushSync started')
+-
+-  const writeIndex = Atomics.load(stream[kImpl].state, WRITE_INDEX)
+-
+-  let spins = 0
+-
+-  // TODO handle deadlock
+-  while (true) {
+-    const readIndex = Atomics.load(stream[kImpl].state, READ_INDEX)
+-
+-    if (readIndex === -2) {
+-      throw new Error('_flushSync failed')
+-    }
+-
+-    // process._rawDebug(`(flushSync) readIndex (${readIndex}) writeIndex (${writeIndex})`)
+-    if (readIndex !== writeIndex) {
+-      // TODO stream timeouts for some reason.
+-      Atomics.wait(stream[kImpl].state, READ_INDEX, readIndex, 1000)
+-    } else {
+-      break
+-    }
+-
+-    if (++spins === 10) {
+-      throw new Error('_flushSync took too long (10s)')
+-    }
+-  }
+-  // process._rawDebug('flushSync finished')
+-}
++ThreadStream.prototype.write = function () {}
++ThreadStream.prototype.end = function () {}
++ThreadStream.prototype.emit = function () {}
++ThreadStream.prototype.on = function () {}
+ 
+ module.exports = ThreadStream
+\ No newline at end of file
+diff --git a/node_modules/thread-stream/test/base.test.js b/node_modules/thread-stream/test/base.test.js
+deleted file mode 100644
+index e4a656a..0000000
+--- a/node_modules/thread-stream/test/base.test.js
++++ /dev/null
+@@ -1,273 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const { readFile } = require('fs')
+-const { file } = require('./helper')
+-const ThreadStream = require('..')
+-const { MessageChannel } = require('worker_threads')
+-const { once } = require('events')
+-
+-test('base sync=true', function (t) {
+-  t.plan(15)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  t.same(stream.writableObjectMode, false)
+-
+-  t.same(stream.writableFinished, false)
+-  stream.on('finish', () => {
+-    t.same(stream.writableFinished, true)
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, 'hello world\nsomething else\n')
+-    })
+-  })
+-
+-  t.same(stream.closed, false)
+-  stream.on('close', () => {
+-    t.same(stream.closed, true)
+-    t.notOk(stream.writable)
+-    t.pass('close emitted')
+-  })
+-
+-  t.same(stream.writableNeedDrain, false)
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-  t.ok(stream.writable)
+-
+-  t.same(stream.writableEnded, false)
+-  stream.end()
+-  t.same(stream.writableEnded, true)
+-})
+-
+-test('overflow sync=true', function (t) {
+-  t.plan(3)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 128,
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  let count = 0
+-
+-  // Write 10 chars, 20 times
+-  function write () {
+-    if (count++ === 20) {
+-      stream.end()
+-      return
+-    }
+-
+-    stream.write('aaaaaaaaaa')
+-    // do not wait for drain event
+-    setImmediate(write)
+-  }
+-
+-  write()
+-
+-  stream.on('finish', () => {
+-    t.pass('finish emitted')
+-  })
+-
+-  stream.on('close', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data.length, 200)
+-    })
+-  })
+-})
+-
+-test('overflow sync=false', function (t) {
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 128,
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  let count = 0
+-
+-  t.same(stream.writableNeedDrain, false)
+-
+-  // Write 10 chars, 20 times
+-  function write () {
+-    if (count++ === 20) {
+-      t.pass('end sent')
+-      stream.end()
+-      return
+-    }
+-
+-    if (!stream.write('aaaaaaaaaa')) {
+-      t.same(stream.writableNeedDrain, true)
+-    }
+-    // do not wait for drain event
+-    setImmediate(write)
+-  }
+-
+-  write()
+-
+-  stream.on('drain', () => {
+-    t.same(stream.writableNeedDrain, false)
+-    t.pass('drain')
+-  })
+-
+-  stream.on('finish', () => {
+-    t.pass('finish emitted')
+-  })
+-
+-  stream.on('close', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data.length, 200)
+-      t.end()
+-    })
+-  })
+-})
+-
+-test('over the bufferSize at startup', function (t) {
+-  t.plan(6)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 10,
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, 'hello world\nsomething else\n')
+-    })
+-  })
+-
+-  stream.on('close', () => {
+-    t.pass('close emitted')
+-  })
+-
+-  t.ok(stream.write('hello'))
+-  t.ok(stream.write(' world\n'))
+-  t.ok(stream.write('something else\n'))
+-
+-  stream.end()
+-})
+-
+-test('over the bufferSize at startup (async)', function (t) {
+-  t.plan(6)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 10,
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  t.ok(stream.write('hello'))
+-  t.notOk(stream.write(' world\n'))
+-  t.notOk(stream.write('something else\n'))
+-
+-  stream.end()
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, 'hello world\nsomething else\n')
+-    })
+-  })
+-
+-  stream.on('close', () => {
+-    t.pass('close emitted')
+-  })
+-})
+-
+-test('flushSync sync=false', function (t) {
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 128,
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  stream.on('drain', () => {
+-    t.pass('drain')
+-    stream.end()
+-  })
+-
+-  stream.on('finish', () => {
+-    t.pass('finish emitted')
+-  })
+-
+-  stream.on('close', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data.length, 200)
+-      t.end()
+-    })
+-  })
+-
+-  for (let count = 0; count < 20; count++) {
+-    stream.write('aaaaaaaaaa')
+-  }
+-  stream.flushSync()
+-})
+-
+-test('pass down MessagePorts', async function (t) {
+-  t.plan(3)
+-
+-  const { port1, port2 } = new MessageChannel()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'port.js'),
+-    workerData: { port: port1 },
+-    workerOpts: {
+-      transferList: [port1]
+-    },
+-    sync: false
+-  })
+-  t.teardown(() => {
+-    stream.end()
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-
+-  const [strings] = await once(port2, 'message')
+-
+-  t.equal(strings, 'hello world\nsomething else\n')
+-})
+-
+-test('destroy does not error', function (t) {
+-  t.plan(5)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  stream.on('ready', () => {
+-    t.pass('ready emitted')
+-    stream.worker.terminate()
+-  })
+-
+-  stream.on('error', (err) => {
+-    t.equal(err.message, 'The worker thread exited')
+-    stream.flush((err) => {
+-      t.equal(err.message, 'the worker has exited')
+-    })
+-    t.doesNotThrow(() => stream.flushSync())
+-    t.doesNotThrow(() => stream.end())
+-  })
+-})
+diff --git a/node_modules/thread-stream/test/bench.test.js b/node_modules/thread-stream/test/bench.test.js
+deleted file mode 100644
+index 7e90d2c..0000000
+--- a/node_modules/thread-stream/test/bench.test.js
++++ /dev/null
+@@ -1,38 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const ThreadStream = require('..')
+-const { file } = require('./helper')
+-
+-const MAX = 1000
+-
+-let str = ''
+-
+-for (let i = 0; i < 10; i++) {
+-  str += 'hello'
+-}
+-
+-test('base', function (t) {
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest }
+-  })
+-  let runs = 0
+-  function benchThreadStream () {
+-    if (++runs === 1000) {
+-      stream.end()
+-      return
+-    }
+-
+-    for (let i = 0; i < MAX; i++) {
+-      stream.write(str)
+-    }
+-    setImmediate(benchThreadStream)
+-  }
+-  benchThreadStream()
+-  stream.on('finish', function () {
+-    t.end()
+-  })
+-})
+diff --git a/node_modules/thread-stream/test/bundlers.test.js b/node_modules/thread-stream/test/bundlers.test.js
+deleted file mode 100644
+index d44468d..0000000
+--- a/node_modules/thread-stream/test/bundlers.test.js
++++ /dev/null
+@@ -1,33 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const { file } = require('./helper')
+-const ThreadStream = require('..')
+-
+-test('bundlers support', function (t) {
+-  t.plan(1)
+-
+-  globalThis.__bundlerPathsOverrides = {
+-    'thread-stream-worker': join(__dirname, 'custom-worker.js')
+-  }
+-
+-  const dest = file()
+-
+-  process.on('uncaughtException', error => {
+-    console.log(error)
+-  })
+-
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.worker.removeAllListeners('message')
+-  stream.worker.once('message', message => {
+-    t.equal(message.code, 'CUSTOM-WORKER-CALLED')
+-  })
+-
+-  stream.end()
+-})
+diff --git a/node_modules/thread-stream/test/close-on-gc.js b/node_modules/thread-stream/test/close-on-gc.js
+deleted file mode 100644
+index d84baa2..0000000
+--- a/node_modules/thread-stream/test/close-on-gc.js
++++ /dev/null
+@@ -1,37 +0,0 @@
+-'use strict'
+-
+-const { join } = require('path')
+-const ThreadStream = require('..')
+-const assert = require('assert')
+-
+-let worker = null
+-
+-function setup () {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file.js'),
+-    workerData: { dest: process.argv[2] },
+-    sync: true
+-  })
+-
+-  worker = stream.worker
+-
+-  stream.write('hello')
+-  stream.write(' ')
+-  stream.write('world\n')
+-  stream.flushSync()
+-  stream.unref()
+-
+-  // the stream object goes out of scope here
+-  setImmediate(gc) // eslint-disable-line
+-}
+-
+-setup()
+-
+-let exitEmitted = false
+-worker.on('exit', function () {
+-  exitEmitted = true
+-})
+-
+-process.on('exit', function () {
+-  assert.strictEqual(exitEmitted, true)
+-})
+diff --git a/node_modules/thread-stream/test/commonjs-fallback.test.js b/node_modules/thread-stream/test/commonjs-fallback.test.js
+deleted file mode 100644
+index 8dd0e92..0000000
+--- a/node_modules/thread-stream/test/commonjs-fallback.test.js
++++ /dev/null
+@@ -1,56 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const { MessageChannel } = require('worker_threads')
+-const { once } = require('events')
+-const ThreadStream = require('..')
+-
+-const isYarnPnp = process.versions.pnp !== undefined
+-
+-test('yarn module resolution', { skip: !isYarnPnp }, t => {
+-  t.plan(6)
+-
+-  const modulePath = require.resolve('pino-elasticsearch')
+-  t.match(modulePath, /.*\.zip.*/)
+-
+-  const stream = new ThreadStream({
+-    filename: modulePath,
+-    workerData: { node: null },
+-    sync: true
+-  })
+-
+-  t.same(stream.writableErrored, null)
+-  stream.on('error', (err) => {
+-    t.same(stream.writableErrored, err)
+-    t.pass('error emitted')
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.writable)
+-  stream.end()
+-})
+-
+-test('yarn module resolution for directories with special characters', { skip: !isYarnPnp }, async t => {
+-  t.plan(3)
+-
+-  const { port1, port2 } = new MessageChannel()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'dir with spaces', 'test-package.zip', 'worker.js'),
+-    workerData: { port: port1 },
+-    workerOpts: {
+-      transferList: [port1]
+-    },
+-    sync: false
+-  })
+-  t.teardown(() => {
+-    stream.end()
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-
+-  const [strings] = await once(port2, 'message')
+-
+-  t.equal(strings, 'hello world\nsomething else\n')
+-})
+diff --git a/node_modules/thread-stream/test/create-and-exit.js b/node_modules/thread-stream/test/create-and-exit.js
+deleted file mode 100644
+index d6f12fa..0000000
+--- a/node_modules/thread-stream/test/create-and-exit.js
++++ /dev/null
+@@ -1,16 +0,0 @@
+-'use strict'
+-
+-const { join } = require('path')
+-const ThreadStream = require('..')
+-
+-const stream = new ThreadStream({
+-  filename: join(__dirname, 'to-file.js'),
+-  workerData: { dest: process.argv[2] },
+-  sync: true
+-})
+-
+-stream.write('hello')
+-stream.write(' ')
+-stream.write('world\n')
+-stream.flushSync()
+-stream.unref()
+diff --git a/node_modules/thread-stream/test/custom-worker.js b/node_modules/thread-stream/test/custom-worker.js
+deleted file mode 100644
+index e78340c..0000000
+--- a/node_modules/thread-stream/test/custom-worker.js
++++ /dev/null
+@@ -1,9 +0,0 @@
+-'use strict'
+-
+-const { parentPort } = require('worker_threads')
+-
+-parentPort.postMessage({
+-  code: 'CUSTOM-WORKER-CALLED'
+-})
+-
+-require('../lib/worker')
+diff --git a/node_modules/thread-stream/test/dir with spaces/test-package.zip b/node_modules/thread-stream/test/dir with spaces/test-package.zip
+deleted file mode 100644
+index 7a2aee8..0000000
+Binary files a/node_modules/thread-stream/test/dir with spaces/test-package.zip and /dev/null differ
+diff --git a/node_modules/thread-stream/test/end.test.js b/node_modules/thread-stream/test/end.test.js
+deleted file mode 100644
+index d96a941..0000000
+--- a/node_modules/thread-stream/test/end.test.js
++++ /dev/null
+@@ -1,61 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const { readFile } = require('fs')
+-const { file } = require('./helper')
+-const ThreadStream = require('..')
+-
+-test('destroy support', function (t) {
+-  t.plan(7)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file-on-destroy.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.on('close', () => {
+-    t.notOk(stream.writable)
+-    t.pass('close emitted')
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-  t.ok(stream.writable)
+-
+-  stream.end()
+-
+-  readFile(dest, 'utf8', (err, data) => {
+-    t.error(err)
+-    t.equal(data, 'hello world\nsomething else\n')
+-  })
+-})
+-
+-test('synchronous _final support', function (t) {
+-  t.plan(7)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'to-file-on-final.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.on('close', () => {
+-    t.notOk(stream.writable)
+-    t.pass('close emitted')
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-  t.ok(stream.writable)
+-
+-  stream.end()
+-
+-  readFile(dest, 'utf8', (err, data) => {
+-    t.error(err)
+-    t.equal(data, 'hello world\nsomething else\n')
+-  })
+-})
+diff --git a/node_modules/thread-stream/test/error.js b/node_modules/thread-stream/test/error.js
+deleted file mode 100644
+index 0c7d598..0000000
+--- a/node_modules/thread-stream/test/error.js
++++ /dev/null
+@@ -1,14 +0,0 @@
+-'use strict'
+-
+-const { Writable } = require('stream')
+-
+-async function run (opts) {
+-  const stream = new Writable({
+-    write (chunk, enc, cb) {
+-      cb(new Error('kaboom'))
+-    }
+-  })
+-  return stream
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/esm.test.mjs b/node_modules/thread-stream/test/esm.test.mjs
+deleted file mode 100644
+index 364bf10..0000000
+--- a/node_modules/thread-stream/test/esm.test.mjs
++++ /dev/null
+@@ -1,47 +0,0 @@
+-import { test } from 'tap'
+-import { readFile } from 'fs'
+-import ThreadStream from '../index.js'
+-import { join } from 'desm'
+-import { pathToFileURL } from 'url'
+-import { file } from './helper.js'
+-
+-function basic (text, filename) {
+-  test(text, function (t) {
+-    t.plan(5)
+-
+-    const dest = file()
+-    const stream = new ThreadStream({
+-      filename,
+-      workerData: { dest },
+-      sync: true
+-    })
+-
+-    stream.on('finish', () => {
+-      readFile(dest, 'utf8', (err, data) => {
+-        t.error(err)
+-        t.equal(data, 'hello world\nsomething else\n')
+-      })
+-    })
+-
+-    stream.on('close', () => {
+-      t.pass('close emitted')
+-    })
+-
+-    t.ok(stream.write('hello world\n'))
+-    t.ok(stream.write('something else\n'))
+-
+-    stream.end()
+-  })
+-}
+-
+-basic('esm with path', join(import.meta.url, 'to-file.mjs'))
+-basic('esm with file URL', pathToFileURL(join(import.meta.url, 'to-file.mjs')).href)
+-
+-basic('(ts -> es6) esm with path', join(import.meta.url, 'ts', 'to-file.es6.mjs'))
+-basic('(ts -> es6) esm with file URL', pathToFileURL(join(import.meta.url, 'ts', 'to-file.es6.mjs')).href)
+-
+-basic('(ts -> es2017) esm with path', join(import.meta.url, 'ts', 'to-file.es2017.mjs'))
+-basic('(ts -> es2017) esm with file URL', pathToFileURL(join(import.meta.url, 'ts', 'to-file.es2017.mjs')).href)
+-
+-basic('(ts -> esnext) esm with path', join(import.meta.url, 'ts', 'to-file.esnext.mjs'))
+-basic('(ts -> esnext) esm with file URL', pathToFileURL(join(import.meta.url, 'ts', 'to-file.esnext.mjs')).href)
+diff --git a/node_modules/thread-stream/test/exit.js b/node_modules/thread-stream/test/exit.js
+deleted file mode 100644
+index 673ff2a..0000000
+--- a/node_modules/thread-stream/test/exit.js
++++ /dev/null
+@@ -1,14 +0,0 @@
+-'use strict'
+-
+-const { Writable } = require('stream')
+-
+-async function run (opts) {
+-  const stream = new Writable({
+-    write (chunk, enc, cb) {
+-      process.exit(1)
+-    }
+-  })
+-  return stream
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/helper.d.ts b/node_modules/thread-stream/test/helper.d.ts
+deleted file mode 100644
+index 7c00f2f..0000000
+--- a/node_modules/thread-stream/test/helper.d.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export declare function file(): string
+diff --git a/node_modules/thread-stream/test/helper.js b/node_modules/thread-stream/test/helper.js
+deleted file mode 100644
+index 31c5ec3..0000000
+--- a/node_modules/thread-stream/test/helper.js
++++ /dev/null
+@@ -1,33 +0,0 @@
+-'use strict'
+-
+-const { join } = require('path')
+-const { tmpdir } = require('os')
+-const { unlinkSync } = require('fs')
+-const why = require('why-is-node-running')
+-const t = require('tap')
+-
+-const files = []
+-let count = 0
+-
+-function file () {
+-  const file = join(tmpdir(), `thread-stream-${process.pid}-${count++}`)
+-  files.push(file)
+-  return file
+-}
+-
+-process.on('beforeExit', () => {
+-  t.comment('unlink files')
+-  for (const file of files) {
+-    try {
+-      t.comment(`unliking ${file}`)
+-      unlinkSync(file)
+-    } catch (e) {
+-      console.log(e)
+-    }
+-  }
+-  t.comment('unlink completed')
+-})
+-
+-module.exports.file = file
+-
+-setInterval(why, 10000).unref()
+diff --git a/node_modules/thread-stream/test/indexes.js b/node_modules/thread-stream/test/indexes.js
+deleted file mode 100644
+index e70f06b..0000000
+--- a/node_modules/thread-stream/test/indexes.js
++++ /dev/null
+@@ -1,11 +0,0 @@
+-'use strict'
+-
+-const test = require('tape')
+-const indexes = require('../lib/indexes')
+-
+-for (const index of Object.keys(indexes)) {
+-  test(`${index} is lock free`, function (t) {
+-    t.equal(Atomics.isLockFree(indexes[index]), true)
+-    t.end()
+-  })
+-}
+diff --git a/node_modules/thread-stream/test/multibyte-chars.test.mjs b/node_modules/thread-stream/test/multibyte-chars.test.mjs
+deleted file mode 100644
+index dff32dd..0000000
+--- a/node_modules/thread-stream/test/multibyte-chars.test.mjs
++++ /dev/null
+@@ -1,74 +0,0 @@
+-import { test } from 'tap'
+-import { readFile } from 'fs'
+-import ThreadStream from '../index.js'
+-import { join } from 'desm'
+-import { file } from './helper.js'
+-
+-test('break up utf8 multibyte (sync)', (t) => {
+-  t.plan(2)
+-  const longString = '\u03A3'.repeat(16)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 15, // this must be odd
+-    filename: join(import.meta.url, 'to-file.js'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, longString)
+-    })
+-  })
+-
+-  stream.write(longString)
+-  stream.end()
+-})
+-
+-test('break up utf8 multibyte (async)', (t) => {
+-  t.plan(2)
+-  const longString = '\u03A3'.repeat(16)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 15, // this must be odd
+-    filename: join(import.meta.url, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, longString)
+-    })
+-  })
+-
+-  stream.write(longString)
+-  stream.end()
+-})
+-
+-test('break up utf8 multibyte several times bigger than write buffer', (t) => {
+-  t.plan(2)
+-  const longString = '\u03A3'.repeat(32)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    bufferSize: 15, // this must be odd
+-    filename: join(import.meta.url, 'to-file.js'),
+-    workerData: { dest },
+-    sync: false
+-  })
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, longString)
+-    })
+-  })
+-
+-  stream.write(longString)
+-  stream.end()
+-})
+diff --git a/node_modules/thread-stream/test/port.js b/node_modules/thread-stream/test/port.js
+deleted file mode 100644
+index 8c73b63..0000000
+--- a/node_modules/thread-stream/test/port.js
++++ /dev/null
+@@ -1,16 +0,0 @@
+-'use strict'
+-
+-const { Writable } = require('stream')
+-
+-function run (opts) {
+-  const { port } = opts
+-  return new Writable({
+-    autoDestroy: true,
+-    write (chunk, enc, cb) {
+-      port.postMessage(chunk.toString())
+-      cb()
+-    }
+-  })
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/string-limit-2.test.js b/node_modules/thread-stream/test/string-limit-2.test.js
+deleted file mode 100644
+index 213c070..0000000
+--- a/node_modules/thread-stream/test/string-limit-2.test.js
++++ /dev/null
+@@ -1,35 +0,0 @@
+-'use strict'
+-
+-const t = require('tap')
+-const { join } = require('path')
+-const { file } = require('./helper')
+-const { createReadStream } = require('fs')
+-const ThreadStream = require('..')
+-const buffer = require('buffer')
+-
+-const MAX_STRING = buffer.constants.MAX_STRING_LENGTH
+-
+-t.plan(1)
+-
+-const dest = file()
+-const stream = new ThreadStream({
+-  filename: join(__dirname, 'to-file.js'),
+-  workerData: { dest },
+-  sync: false
+-})
+-
+-stream.on('close', async () => {
+-  t.comment('close emitted')
+-  let buf
+-  for await (const chunk of createReadStream(dest)) {
+-    buf = chunk
+-  }
+-  t.equal('asd', buf.toString().slice(-3))
+-})
+-
+-stream.on('ready', () => {
+-  t.comment('open emitted')
+-  stream.write('a'.repeat(MAX_STRING - 2))
+-  stream.write('asd')
+-  stream.end()
+-})
+diff --git a/node_modules/thread-stream/test/string-limit.test.js b/node_modules/thread-stream/test/string-limit.test.js
+deleted file mode 100644
+index fd78f54..0000000
+--- a/node_modules/thread-stream/test/string-limit.test.js
++++ /dev/null
+@@ -1,36 +0,0 @@
+-'use strict'
+-
+-const t = require('tap')
+-const { join } = require('path')
+-const { file } = require('./helper')
+-const { stat } = require('fs')
+-const ThreadStream = require('..')
+-
+-t.setTimeout(30000)
+-
+-const dest = file()
+-const stream = new ThreadStream({
+-  filename: join(__dirname, 'to-file.js'),
+-  workerData: { dest },
+-  sync: false
+-})
+-
+-let length = 0
+-
+-stream.on('close', () => {
+-  stat(dest, (err, f) => {
+-    t.error(err)
+-    t.equal(f.size, length)
+-    t.end()
+-  })
+-})
+-
+-const buf = Buffer.alloc(1024).fill('x').toString() // 1 KB
+-
+-// This writes 1 GB of data
+-for (let i = 0; i < 1024 * 1024; i++) {
+-  length += buf.length
+-  stream.write(buf)
+-}
+-
+-stream.end()
+diff --git a/node_modules/thread-stream/test/thread-management.test.js b/node_modules/thread-stream/test/thread-management.test.js
+deleted file mode 100644
+index 0c87208..0000000
+--- a/node_modules/thread-stream/test/thread-management.test.js
++++ /dev/null
+@@ -1,173 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { fork } = require('child_process')
+-const { join } = require('path')
+-const { readFile } = require('fs').promises
+-const { file } = require('./helper')
+-const { once } = require('events')
+-const ThreadStream = require('..')
+-
+-test('exits with 0', async function (t) {
+-  const dest = file()
+-  const child = fork(join(__dirname, 'create-and-exit.js'), [dest])
+-
+-  const [code] = await once(child, 'exit')
+-  t.equal(code, 0)
+-
+-  const data = await readFile(dest, 'utf8')
+-  t.equal(data, 'hello world\n')
+-})
+-
+-test('emit error if thread exits', async function (t) {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'exit.js'),
+-    sync: true
+-  })
+-
+-  stream.on('ready', () => {
+-    stream.write('hello world\n')
+-  })
+-
+-  const [err] = await once(stream, 'error')
+-  t.equal(err.message, 'The worker thread exited')
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-})
+-
+-test('emit error if thread exits', async function (t) {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'exit.js'),
+-    sync: true
+-  })
+-
+-  stream.on('ready', () => {
+-    stream.write('hello world\n')
+-  })
+-
+-  const [err] = await once(stream, 'error')
+-  t.equal(err.message, 'The worker thread exited')
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-})
+-
+-test('emit error if thread have unhandledRejection', async function (t) {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'unhandledRejection.js'),
+-    sync: true
+-  })
+-
+-  stream.on('ready', () => {
+-    stream.write('hello world\n')
+-  })
+-
+-  const [err] = await once(stream, 'error')
+-  t.equal(err.message, 'kaboom')
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-})
+-
+-test('emit error if worker stream emit error', async function (t) {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'error.js'),
+-    sync: true
+-  })
+-
+-  stream.on('ready', () => {
+-    stream.write('hello world\n')
+-  })
+-
+-  const [err] = await once(stream, 'error')
+-  t.equal(err.message, 'kaboom')
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-})
+-
+-test('emit error if thread have uncaughtException', async function (t) {
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'uncaughtException.js'),
+-    sync: true
+-  })
+-
+-  stream.on('ready', () => {
+-    stream.write('hello world\n')
+-  })
+-
+-  const [err] = await once(stream, 'error')
+-  t.equal(err.message, 'kaboom')
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-
+-  try {
+-    stream.write('noop')
+-    t.fail('unreacheable')
+-  } catch (err) {
+-    t.equal(err.message, 'the worker has exited')
+-  }
+-})
+-
+-test('close the work if out of scope on gc', { skip: !global.WeakRef }, async function (t) {
+-  const dest = file()
+-  const child = fork(join(__dirname, 'close-on-gc.js'), [dest], {
+-    execArgv: ['--expose-gc']
+-  })
+-
+-  const [code] = await once(child, 'exit')
+-  t.equal(code, 0)
+-
+-  const data = await readFile(dest, 'utf8')
+-  t.equal(data, 'hello world\n')
+-})
+diff --git a/node_modules/thread-stream/test/to-file-on-destroy.js b/node_modules/thread-stream/test/to-file-on-destroy.js
+deleted file mode 100644
+index 7bfc5a8..0000000
+--- a/node_modules/thread-stream/test/to-file-on-destroy.js
++++ /dev/null
+@@ -1,23 +0,0 @@
+-'use strict'
+-
+-const fs = require('fs')
+-const { Writable } = require('stream')
+-
+-function run (opts) {
+-  let data = ''
+-  return new Writable({
+-    autoDestroy: true,
+-    write (chunk, enc, cb) {
+-      data += chunk.toString()
+-      cb()
+-    },
+-    destroy (err, cb) {
+-      // process._rawDebug('destroy called')
+-      fs.writeFile(opts.dest, data, function (err2) {
+-        cb(err2 || err)
+-      })
+-    }
+-  })
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/to-file-on-final.js b/node_modules/thread-stream/test/to-file-on-final.js
+deleted file mode 100644
+index 4cefdeb..0000000
+--- a/node_modules/thread-stream/test/to-file-on-final.js
++++ /dev/null
+@@ -1,24 +0,0 @@
+-'use strict'
+-
+-const fs = require('fs')
+-const { Writable } = require('stream')
+-
+-function run (opts) {
+-  let data = ''
+-  return new Writable({
+-    autoDestroy: true,
+-    write (chunk, enc, cb) {
+-      data += chunk.toString()
+-      cb()
+-    },
+-    final (cb) {
+-      setTimeout(function () {
+-        fs.writeFile(opts.dest, data, function (err) {
+-          cb(err)
+-        })
+-      }, 100)
+-    }
+-  })
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/to-file.js b/node_modules/thread-stream/test/to-file.js
+deleted file mode 100644
+index 9ceb636..0000000
+--- a/node_modules/thread-stream/test/to-file.js
++++ /dev/null
+@@ -1,12 +0,0 @@
+-'use strict'
+-
+-const fs = require('fs')
+-const { once } = require('events')
+-
+-async function run (opts) {
+-  const stream = fs.createWriteStream(opts.dest)
+-  await once(stream, 'open')
+-  return stream
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/to-file.mjs b/node_modules/thread-stream/test/to-file.mjs
+deleted file mode 100644
+index 2fcfe2d..0000000
+--- a/node_modules/thread-stream/test/to-file.mjs
++++ /dev/null
+@@ -1,8 +0,0 @@
+-import { createWriteStream } from 'fs'
+-import { once } from 'events'
+-
+-export default async function run (opts) {
+-  const stream = createWriteStream(opts.dest)
+-  await once(stream, 'open')
+-  return stream
+-}
+diff --git a/node_modules/thread-stream/test/transpiled.test.js b/node_modules/thread-stream/test/transpiled.test.js
+deleted file mode 100644
+index 047486f..0000000
+--- a/node_modules/thread-stream/test/transpiled.test.js
++++ /dev/null
+@@ -1,30 +0,0 @@
+-'use strict'
+-
+-const { test } = require('tap')
+-const { join } = require('path')
+-const { file } = require('./helper')
+-const ThreadStream = require('..')
+-
+-function basic (esVersion) {
+-  test(`transpiled-ts-to-${esVersion}`, function (t) {
+-    t.plan(2)
+-
+-    const dest = file()
+-    const stream = new ThreadStream({
+-      filename: join(__dirname, 'ts', `to-file.${esVersion}.cjs`),
+-      workerData: { dest },
+-      sync: true
+-    })
+-
+-    // There are arbitrary checks, the important aspect of this test is to ensure
+-    // that we can properly load the transpiled file into our worker thread.
+-    t.same(stream.writableEnded, false)
+-    stream.end()
+-    t.same(stream.writableEnded, true)
+-  })
+-}
+-
+-basic('es5')
+-basic('es6')
+-basic('es2017')
+-basic('esnext')
+diff --git a/node_modules/thread-stream/test/ts.test.ts b/node_modules/thread-stream/test/ts.test.ts
+deleted file mode 100644
+index 70113c5..0000000
+--- a/node_modules/thread-stream/test/ts.test.ts
++++ /dev/null
+@@ -1,33 +0,0 @@
+-import { test } from 'tap'
+-import { readFile } from 'fs'
+-import ThreadStream from '../index.js'
+-import { join } from 'path'
+-import { file } from './helper.js'
+-
+-
+-test('typescript module', function (t) {
+-  t.plan(5)
+-
+-  const dest = file()
+-  const stream = new ThreadStream({
+-    filename: join(__dirname, 'ts', 'to-file.ts'),
+-    workerData: { dest },
+-    sync: true
+-  })
+-
+-  stream.on('finish', () => {
+-    readFile(dest, 'utf8', (err, data) => {
+-      t.error(err)
+-      t.equal(data, 'hello world\nsomething else\n')
+-    })
+-  })
+-
+-  stream.on('close', () => {
+-    t.pass('close emitted')
+-  })
+-
+-  t.ok(stream.write('hello world\n'))
+-  t.ok(stream.write('something else\n'))
+-
+-  stream.end()
+-})
+diff --git a/node_modules/thread-stream/test/ts/to-file.ts b/node_modules/thread-stream/test/ts/to-file.ts
+deleted file mode 100644
+index da132eb..0000000
+--- a/node_modules/thread-stream/test/ts/to-file.ts
++++ /dev/null
+@@ -1,10 +0,0 @@
+-import { type PathLike, type WriteStream, createWriteStream } from 'fs'
+-import { once } from 'events'
+-
+-export default async function run (
+-  opts: { dest: PathLike },
+-): Promise<WriteStream> {
+-  const stream = createWriteStream(opts.dest)
+-  await once(stream, 'open')
+-  return stream
+-}
+diff --git a/node_modules/thread-stream/test/ts/transpile.sh b/node_modules/thread-stream/test/ts/transpile.sh
+deleted file mode 100755
+index 890b40d..0000000
+--- a/node_modules/thread-stream/test/ts/transpile.sh
++++ /dev/null
+@@ -1,19 +0,0 @@
+-#!/bin/sh
+-
+-set -e
+-
+-cd ./test/ts;
+-
+-if (echo "${npm_config_user_agent}" | grep "yarn"); then
+-  export RUNNER="yarn";
+-else
+-  export RUNNER="npx";
+-fi
+-
+-test ./to-file.ts -ot ./to-file.es5.cjs    || ("${RUNNER}" tsc --target es5                      ./to-file.ts && mv ./to-file.js ./to-file.es5.cjs);
+-test ./to-file.ts -ot ./to-file.es6.mjs    || ("${RUNNER}" tsc --target es6                      ./to-file.ts && mv ./to-file.js ./to-file.es6.mjs);
+-test ./to-file.ts -ot ./to-file.es6.cjs    || ("${RUNNER}" tsc --target es6    --module commonjs ./to-file.ts && mv ./to-file.js ./to-file.es6.cjs);
+-test ./to-file.ts -ot ./to-file.es2017.mjs || ("${RUNNER}" tsc --target es2017                   ./to-file.ts && mv ./to-file.js ./to-file.es2017.mjs);
+-test ./to-file.ts -ot ./to-file.es2017.cjs || ("${RUNNER}" tsc --target es2017 --module commonjs ./to-file.ts && mv ./to-file.js ./to-file.es2017.cjs);
+-test ./to-file.ts -ot ./to-file.esnext.mjs || ("${RUNNER}" tsc --target esnext --module esnext   ./to-file.ts && mv ./to-file.js ./to-file.esnext.mjs);
+-test ./to-file.ts -ot ./to-file.esnext.cjs || ("${RUNNER}" tsc --target esnext --module commonjs ./to-file.ts && mv ./to-file.js ./to-file.esnext.cjs);
+diff --git a/node_modules/thread-stream/test/uncaughtException.js b/node_modules/thread-stream/test/uncaughtException.js
+deleted file mode 100644
+index 7f01e2f..0000000
+--- a/node_modules/thread-stream/test/uncaughtException.js
++++ /dev/null
+@@ -1,21 +0,0 @@
+-'use strict'
+-
+-const { Writable } = require('stream')
+-
+-// Nop console.error to avoid printing things out
+-console.error = () => {}
+-
+-setImmediate(function () {
+-  throw new Error('kaboom')
+-})
+-
+-async function run (opts) {
+-  const stream = new Writable({
+-    write (chunk, enc, cb) {
+-      cb()
+-    }
+-  })
+-  return stream
+-}
+-
+-module.exports = run
+diff --git a/node_modules/thread-stream/test/unhandledRejection.js b/node_modules/thread-stream/test/unhandledRejection.js
+deleted file mode 100644
+index d7cc6c2..0000000
+--- a/node_modules/thread-stream/test/unhandledRejection.js
++++ /dev/null
+@@ -1,21 +0,0 @@
+-'use strict'
+-
+-const { Writable } = require('stream')
+-
+-// Nop console.error to avoid printing things out
+-console.error = () => {}
+-
+-setImmediate(function () {
+-  Promise.reject(new Error('kaboom'))
+-})
+-
+-async function run (opts) {
+-  const stream = new Writable({
+-    write (chunk, enc, cb) {
+-      cb()
+-    }
+-  })
+-  return stream
+-}
+-
+-module.exports = run
