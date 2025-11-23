@@ -29,24 +29,46 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content: `You are a Twitter sentiment analyzer. Analyze recent tweets about the topic provided and return ONLY a valid JSON object with this exact structure:
+            content: `You are a Ronin blockchain ecosystem analyst. Analyze recent tweets about the Ronin blockchain and return ONLY a valid JSON object with this exact structure:
 {
   "sentiment_score": <number between -1 and 1>,
-  "trending_topics": [<array of 3-5 trending topic strings>],
-  "insights": [<array of 3-5 actionable insight strings>],
+  "trending_topics": [<array of 3-5 trending topics specific to Ronin ecosystem>],
+  "insights": [<array of 3-5 actionable insights about opportunities, pain points, or needs in the Ronin community>],
   "tweet_count": <estimated number of tweets analyzed>
 }
 
 Sentiment score guide:
-- 1.0: Very positive, bullish, excited
+- 1.0: Very positive, bullish, excited about Ronin
 - 0.5: Moderately positive
 - 0.0: Neutral
 - -0.5: Moderately negative
-- -1.0: Very negative, bearish, frustrated`
+- -1.0: Very negative, bearish, frustrated
+
+Focus on:
+- Gaming and NFT projects on Ronin
+- DeFi and infrastructure needs
+- Developer pain points and feature requests
+- Community excitement and concerns
+- Opportunities for builders and creators`
           },
           {
             role: "user",
-            content: `Search X (Twitter) for recent tweets about: "${query}". Focus on tweets from the last 24 hours. Analyze sentiment and identify trending topics and actionable insights.`
+            content: `Search X (Twitter) for recent tweets about: "${query}".
+
+Focus on the Ronin blockchain ecosystem, including:
+- Ronin network discussions
+- Axie Infinity and gaming on Ronin
+- RON token sentiment
+- NFT projects and marketplaces on Ronin
+- Developer and builder activity
+
+Analyze tweets from the last 24-48 hours. Identify:
+1. Overall sentiment toward Ronin
+2. What's trending or generating buzz
+3. Pain points or needs the community is discussing
+4. Opportunities for builders and creators
+
+Return insights that would help match skilled individuals with meaningful projects on Ronin.`
           }
         ],
         // Enable Live Search with X (Twitter) source
@@ -58,7 +80,7 @@ Sentiment score guide:
             }
           ],
           return_citations: true,
-          max_search_results: 20,
+          max_search_results: 30,
         },
         temperature: 0.7,
         stream: false,

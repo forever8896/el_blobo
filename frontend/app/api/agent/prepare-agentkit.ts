@@ -15,6 +15,7 @@ import { Address, Hex, LocalAccount } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { smartContractActionProvider } from "@/src/agentkit/action-providers";
 import { SMART_CONTRACT_CONFIGS } from "./contract-configs";
+import { blobRegistrationActionProvider } from "./blob-registration-action";
 
 /**
  * AgentKit Integration Route
@@ -105,7 +106,7 @@ export async function prepareAgentkitAndWalletProvider(): Promise<{
       apiKeyId: process.env.CDP_API_KEY_ID,
       apiKeySecret: process.env.CDP_API_KEY_SECRET,
       walletSecret: process.env.CDP_WALLET_SECRET,
-      networkId: process.env.NETWORK_ID || "base-sepolia",
+      networkId: process.env.NETWORK_ID || "ronin-saigon-testnet",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       owner: owner as any,
       address: walletData?.smartWalletAddress,
@@ -131,6 +132,8 @@ export async function prepareAgentkitAndWalletProvider(): Promise<{
         cdpApiActionProvider(),
         cdpSmartWalletActionProvider(),
         x402ActionProvider(),
+        // Custom Blob platform action provider
+        blobRegistrationActionProvider(),
         // Custom smart contract action providers
         ...customContractProviders,
       ],

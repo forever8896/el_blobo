@@ -22,7 +22,7 @@ const gemini = process.env.GOOGLE_API_KEY
  * Each judge uses a DIFFERENT AI provider for genuine diversity:
  * - VALIDATOR-PRIME: OpenAI GPT-4 (technical precision)
  * - CHAOS-ARBITER: Grok (X.AI's chaotic, unfiltered model)
- * - IMPACT-SAGE: Google Gemini (thoughtful, analytical)
+ * - IMPACT-SAGE: Google Gemini 2.5 Flash (thoughtful, analytical)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -205,7 +205,7 @@ async function evaluateWithGemini(systemPrompt: string, evaluationPrompt: string
   }
 
   const model = gemini.getGenerativeModel({
-    model: 'gemini-1.5-flash-002',
+    model: 'gemini-2.5-flash', // Updated from retired gemini-1.5-flash-002
     generationConfig: {
       responseMimeType: 'application/json'
     }

@@ -41,10 +41,10 @@ export default function Home() {
     // Helper to convert "Zoom Factor" to Camera Distance
     // Assumes Distance 60 is "1x", so Distance 2 is "30x"
     const getDistance = (factor: number) => 60 / factor;
-    
+
     // Initial state
     const zoomState = { factor: 30 };
-    
+
     // Create GSAP Timeline
     const tl = gsap.timeline({
       defaults: { ease: "power2.inOut" }

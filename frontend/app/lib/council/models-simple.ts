@@ -49,7 +49,7 @@ export const councilMembers: JudgeSpecialization[] = [
   {
     id: 'media-analyst',
     name: 'MEDIA-ANALYST',
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.5-flash',
     provider: 'google',
     contentTypes: ['video', 'image', 'text'],
     capabilities: {
@@ -206,7 +206,7 @@ export async function evaluateWithGemini(
   const gemini = ModelClients.getGemini();
 
   const model = gemini.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.5-flash',
     generationConfig: {
       responseMimeType: 'application/json'
     }

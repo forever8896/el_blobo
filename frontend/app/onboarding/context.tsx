@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 interface OnboardingState {
   username: string;
@@ -27,9 +27,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     interviewResponses: [],
   });
 
-  const updateState = (updates: Partial<OnboardingState>) => {
+  // Memoize updateState to prevent infinite loops
+  const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState((prev) => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   return (
     <OnboardingContext.Provider value={{ state, updateState }}>

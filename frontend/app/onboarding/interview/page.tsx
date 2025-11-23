@@ -1,7 +1,7 @@
 "use client";
 
 import { m } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../context";
 
@@ -13,6 +13,14 @@ export default function InterviewPage() {
   const [input, setInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Guard: Redirect if deposit not completed
+  useEffect(() => {
+    if (!state.depositCompleted || !state.walletAddress) {
+      console.warn('Interview access denied - deposit not completed');
+      router.push('/onboarding/deposit');
+    }
+  }, [state.depositCompleted, state.walletAddress, router]);
+
   const questions = [
     "QUERY 1: What drives you? What gets you excited to work on a project?",
     "QUERY 2: What gives you energy? What kind of work makes you lose track of time?",
@@ -21,7 +29,15 @@ export default function InterviewPage() {
 
   const handleComplete = async (finalResponses: string[]) => {
     setIsSubmitting(true);
-    
+
+    // Validate required data before submitting
+    if (!state.walletAddress || !state.username) {
+      console.error('Missing required data:', { walletAddress: state.walletAddress, username: state.username });
+      alert(`Registration failed: Missing required information.\n\nWallet: ${state.walletAddress || 'NOT SET'}\nUsername: ${state.username || 'NOT SET'}\n\nPlease go back and complete the previous steps.`);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Register user in database
       const response = await fetch('/api/users/register', {

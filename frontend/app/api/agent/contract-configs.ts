@@ -13,14 +13,16 @@
 
 import type { Address } from "viem";
 import type { SmartContractConfig } from "@/src/agentkit/action-providers";
+import MainABI from "@/app/abis/Main.json";
+import VaultABI from "@/app/abis/NativeRewardVault.json";
 
 /**
- * Example: USDC Token on Base
+ * Example: RON Token on Ronin (disabled - use native token instead)
  *
- * Uncomment and customize this example to add USDC interaction capabilities
+ * Ronin uses RON as native currency, similar to ETH on Ethereum
  */
-const USDC_BASE_SEPOLIA: SmartContractConfig = {
-  contractAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as Address,
+const RON_TOKEN_EXAMPLE: SmartContractConfig = {
+  contractAddress: "0x0000000000000000000000000000000000000000" as Address,
   abi: [
     {
       type: "function",
@@ -29,26 +31,9 @@ const USDC_BASE_SEPOLIA: SmartContractConfig = {
       outputs: [{ type: "uint256", name: "" }],
       stateMutability: "view",
     },
-    {
-      type: "function",
-      name: "transfer",
-      inputs: [
-        { type: "address", name: "to" },
-        { type: "uint256", name: "amount" },
-      ],
-      outputs: [{ type: "bool", name: "" }],
-      stateMutability: "nonpayable",
-    },
-    {
-      type: "function",
-      name: "decimals",
-      inputs: [],
-      outputs: [{ type: "uint8", name: "" }],
-      stateMutability: "view",
-    },
   ] as const,
-  supportedNetworks: ["base-sepolia"],
-  contractDescription: "USDC Stablecoin on Base Sepolia Testnet",
+  supportedNetworks: ["ronin-saigon-testnet"],
+  contractDescription: "Example RON token - disabled (use native RON instead)",
 };
 
 /**
@@ -77,8 +62,8 @@ const MY_NFT_CONTRACT: SmartContractConfig = {
       stateMutability: "view",
     },
   ] as const,
-  supportedNetworks: ["base-sepolia"],
-  contractDescription: "My Custom NFT Collection",
+  supportedNetworks: ["ronin-saigon-testnet"],
+  contractDescription: "My Custom NFT Collection on Ronin",
 };
 
 /**
@@ -121,8 +106,25 @@ const DAO_GOVERNANCE: SmartContractConfig = {
       stateMutability: "view",
     },
   ] as const,
-  supportedNetworks: ["base-sepolia"],
-  contractDescription: "DAO Governance Contract for on-chain voting",
+  supportedNetworks: ["ronin-saigon-testnet"],
+  contractDescription: "DAO Governance Contract for on-chain voting on Ronin",
+};
+
+/**
+ * Blob Platform Contracts on Ronin Saigon Testnet
+ */
+const BLOB_MAIN_CONTRACT: SmartContractConfig = {
+  contractAddress: "0x46F59fF2F2ea9A2f5184B63c947346cF7171F1C3" as Address,
+  abi: MainABI as any,
+  supportedNetworks: ["ronin-saigon-testnet"],
+  contractDescription: "Main contract for The Blob platform - handles user registration, project management, and rewards distribution on Ronin Saigon Testnet",
+};
+
+const BLOB_VAULT_CONTRACT: SmartContractConfig = {
+  contractAddress: "0x559d4a81e50df2141Fa5Fa6e61BA1207F139a7A7" as Address,
+  abi: VaultABI as any,
+  supportedNetworks: ["ronin-saigon-testnet"],
+  contractDescription: "Native Reward Vault for The Blob platform - manages registration pricing and reward shares on Ronin Saigon Testnet",
 };
 
 /**
@@ -132,19 +134,20 @@ const DAO_GOVERNANCE: SmartContractConfig = {
  * the AI agent can interact with.
  */
 export const SMART_CONTRACT_CONFIGS: Record<string, SmartContractConfig> = {
-  // Only enable contracts with real deployed addresses:
-  usdc: USDC_BASE_SEPOLIA,
+  // Blob Platform Contracts (Ronin Saigon Testnet)
+  blobMain: BLOB_MAIN_CONTRACT,
+  blobVault: BLOB_VAULT_CONTRACT,
 
   // Templates with placeholder addresses (replace with real addresses to use):
   // nft: MY_NFT_CONTRACT,
   // dao: DAO_GOVERNANCE,
 
-  // Add your own contracts here:
+  // Add your own contracts here for Ronin ecosystem:
   // myContract: {
   //   contractAddress: "0x..." as Address,
   //   abi: [...] as const,
-  //   supportedNetworks: ["base-sepolia"],
-  //   contractDescription: "My custom contract"
+  //   supportedNetworks: ["ronin-saigon-testnet"],
+  //   contractDescription: "My custom contract on Ronin"
   // }
 };
 
@@ -160,7 +163,7 @@ export const SMART_CONTRACT_CONFIGS: Record<string, SmartContractConfig> = {
  *    const MY_CONTRACT: SmartContractConfig = {
  *      contractAddress: "0x..." as Address,
  *      abi: [...] as const,
- *      supportedNetworks: ["base-sepolia"],
+ *      supportedNetworks: ["ronin-saigon-testnet"],
  *      contractDescription: "What this contract does"
  *    };
  *

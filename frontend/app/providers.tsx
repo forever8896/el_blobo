@@ -11,6 +11,7 @@ let globalQueryClient: QueryClient | undefined;
 
 function getConfig() {
   if (!globalConfig) {
+    // Get base config from Tanto - use default storage for normal operation
     globalConfig = getDefaultConfig({
       keylessWalletConfig: {
         enable: false,

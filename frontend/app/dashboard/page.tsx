@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAgent } from "../hooks/useAgent";
 import ReactMarkdown from "react-markdown";
-import { OnboardingData } from "../components/OnboardingFlow";
+import { OnboardingData } from "../types/onboarding";
 import WorkSubmission from "../components/WorkSubmission";
 import AICouncil from "../components/AICouncil";
 import { useAccount, useDisconnect } from "wagmi";
@@ -31,7 +31,7 @@ export default function Dashboard() {
   const { address: connectedWallet, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
-  // Pass wallet address to useAgent hook
+  // Pass wallet address to useAgent hook - will load chat history internally
   const { messages, sendMessage, isThinking } = useAgent(userData?.walletAddress);
 
   // Job workflow state
@@ -63,12 +63,35 @@ export default function Dashboard() {
                 interviewResponses: data.user.skills?.responses || []
               });
 
-              // Fetch active projects/jobs
-              // Note: We don't have a dedicated API endpoint for this yet exposed effectively, 
-              // but we can assume we might add one or use the profile if it included it.
-              // For now, we will keep the local state but acknowledging we need to persist it.
-              // TODO: Implement /api/projects endpoint
-              
+              // Fetch active projects/jobs from database
+              try {
+                const projectsResponse = await fetch(`/api/projects?walletAddress=${savedWallet}`);
+                const projectsData = await projectsResponse.json();
+
+                if (projectsData.success && projectsData.projects) {
+                  // Find the most recent active project
+                  const activeProjects = projectsData.projects.filter(
+                    (p: any) => !p.submission_url // Projects without submission are still active
+                  );
+
+                  if (activeProjects.length > 0) {
+                    const mostRecent = activeProjects[0]; // Already sorted by created_at DESC
+                    setActiveJob({
+                      id: mostRecent.id,
+                      title: mostRecent.title,
+                      description: mostRecent.description || '',
+                      price_estimate: 100, // TODO: Store this in DB
+                      deadline_start: new Date(mostRecent.created_at),
+                      deadline_end: new Date(mostRecent.updated_at),
+                      status: mostRecent.submission_url ? 'submitted' : 'active'
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error('Error loading projects:', error);
+                // Continue without projects
+              }
+
             } else {
                 // Invalid session, redirect to landing
                 router.push('/');
@@ -102,8 +125,10 @@ export default function Dashboard() {
     await sendMessage(message);
   };
 
-  // Simulate job assignment (this would normally come from THE BLOB's response)
-  const assignJob = (jobData: Partial<ActiveJob>) => {
+  // Assign a job and persist to database
+  const assignJob = async (jobData: Partial<ActiveJob>) => {
+    if (!userData?.walletAddress) return;
+
     const newJob: ActiveJob = {
       id: jobData.id || `job-${Date.now()}`,
       title: jobData.title || "New Job",
@@ -113,11 +138,63 @@ export default function Dashboard() {
       deadline_end: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
       status: 'active'
     };
-    setActiveJob(newJob);
+
+    try {
+      // Persist to database
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractKey: newJob.id,
+          assigneeAddress: userData.walletAddress,
+          title: newJob.title,
+          description: newJob.description,
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Use DB-generated ID
+        newJob.id = result.project.id;
+        setActiveJob(newJob);
+      } else {
+        console.error('Failed to persist job:', result.message);
+        // Still set the job locally even if DB save fails
+        setActiveJob(newJob);
+      }
+    } catch (error) {
+      console.error('Error persisting job:', error);
+      // Still set the job locally even if DB save fails
+      setActiveJob(newJob);
+    }
   };
 
-  const handleWorkSubmit = (submissionUrl: string, submissionNotes: string) => {
+  const handleWorkSubmit = async (submissionUrl: string, submissionNotes: string) => {
     if (!activeJob) return;
+
+    try {
+      // Save submission to database
+      const response = await fetch('/api/projects', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: activeJob.id,
+          submissionUrl,
+          submissionNotes,
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('Submission saved to database');
+      } else {
+        console.error('Failed to save submission:', result.message);
+      }
+    } catch (error) {
+      console.error('Error saving submission:', error);
+    }
 
     setSubmissionData({ url: submissionUrl, notes: submissionNotes });
     setShowWorkSubmission(false);
@@ -182,6 +259,15 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Test Submission Link */}
+            <button
+              onClick={() => router.push('/test-submission')}
+              className="px-4 py-2 bg-transparent border-2 border-blob-mint text-blob-mint text-xs font-mono hover:bg-blob-mint hover:text-black transition-all font-bold"
+              title="Test the AI Council without on-chain contracts"
+            >
+              [🧪 TEST COUNCIL]
+            </button>
+
             {/* Wallet Connect Button */}
             <div className="wallet-connect-header">
               {isConnected && connectedWallet ? (
