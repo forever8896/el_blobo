@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.2.1",
+    "@anthropic-ai/sdk": "^0.70.1",
     "@coinbase/agentkit": "latest",
     "@coinbase/agentkit-langchain": "latest",
     "@coinbase/agentkit-vercel-ai-sdk": "latest",
@@ -22,6 +23,7 @@
     "@solana/web3.js": "^1.98.0",
     "@tanstack/react-query": "^5",
     "@types/pg": "^8.15.6",
+    "@types/three": "^0.181.0",
     "@vercel/postgres": "^0.10.0",
     "ai": "^4.1.54",
     "bs58": "^6.0.0",
@@ -31,6 +33,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.0.0",
+    "three": "^0.181.2",
     "viem": "^2.24.1",
     "wagmi": "^2.11.0"
   },
