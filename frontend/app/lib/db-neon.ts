@@ -105,6 +105,14 @@ export interface Referral {
   created_at: string;
 }
 
+export interface AdminSuggestion {
+  id: number;
+  suggestions: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================================
 // USER OPERATIONS
 // ============================================================================
@@ -410,6 +418,57 @@ export async function getReferralTree(walletAddress: string): Promise<Referral[]
   );
 
   return result.rows;
+}
+
+// ============================================================================
+// ADMIN SUGGESTION OPERATIONS
+// ============================================================================
+
+/**
+ * Get the current admin suggestions
+ */
+export async function getAdminSuggestions(): Promise<AdminSuggestion | null> {
+  const result = await query<AdminSuggestion>(
+    `SELECT * FROM admin_suggestions
+     ORDER BY updated_at DESC
+     LIMIT 1`
+  );
+
+  return result.rows[0] || null;
+}
+
+/**
+ * Update admin suggestions
+ */
+export async function updateAdminSuggestions(params: {
+  suggestions: string;
+  updatedBy: string;
+}): Promise<AdminSuggestion> {
+  const normalizedUpdatedBy = params.updatedBy.toLowerCase();
+
+  // Check if suggestions exist
+  const existing = await getAdminSuggestions();
+
+  if (existing) {
+    // Update existing
+    const result = await query<AdminSuggestion>(
+      `UPDATE admin_suggestions
+       SET suggestions = $1, updated_by = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [params.suggestions, normalizedUpdatedBy, existing.id]
+    );
+    return result.rows[0];
+  } else {
+    // Insert new
+    const result = await query<AdminSuggestion>(
+      `INSERT INTO admin_suggestions (suggestions, updated_by)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [params.suggestions, normalizedUpdatedBy]
+    );
+    return result.rows[0];
+  }
 }
 
 // ============================================================================

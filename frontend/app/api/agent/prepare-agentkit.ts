@@ -16,6 +16,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { smartContractActionProvider } from "@/src/agentkit/action-providers";
 import { SMART_CONTRACT_CONFIGS } from "./contract-configs";
 import { blobRegistrationActionProvider } from "./blob-registration-action";
+import { blobProjectActionProvider } from "./blob-project-action";
 
 /**
  * AgentKit Integration Route
@@ -132,8 +133,9 @@ export async function prepareAgentkitAndWalletProvider(): Promise<{
         cdpApiActionProvider(),
         cdpSmartWalletActionProvider(),
         x402ActionProvider(),
-        // Custom Blob platform action provider
+        // Custom Blob platform action providers
         blobRegistrationActionProvider(),
+        blobProjectActionProvider(),
         // Custom smart contract action providers
         ...customContractProviders,
       ],

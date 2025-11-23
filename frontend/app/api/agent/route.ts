@@ -2,8 +2,9 @@ import { AgentRequest, AgentResponse } from "@/app/types/api";
 import { NextResponse } from "next/server";
 import { createAgent } from "./create-agent";
 import { Message, generateId, generateText } from "ai";
-import { getUserByWallet, saveChatMessage, getChatHistory } from "@/app/lib/db-neon";
+import { getUserByWallet, saveChatMessage, getChatHistory, getAdminSuggestions } from "@/app/lib/db-neon";
 import { getTreasuryInfo, formatTreasuryForAgent } from "@/app/lib/contractUtils";
+import { DEFAULT_JOB_SUGGESTIONS } from "@/app/config/admin";
 
 /**
  * Handles incoming POST requests to interact with the AgentKit-powered AI agent.
@@ -29,17 +30,26 @@ export async function POST(
     // 1. Extract user message and wallet address from the request body
     const { userMessage, walletAddress } = await req.json();
 
-    // 2. Fetch treasury info (ALWAYS - this grounds the agent in reality)
+    // 2. Fetch treasury info on EVERY REQUEST (ALWAYS fresh data)
+    console.log('🏦 Fetching FRESH treasury data from blockchain...');
     let treasuryContext = '';
+    let treasuryInfo = null;
+
     try {
-      const treasuryInfo = await getTreasuryInfo();
+      treasuryInfo = await getTreasuryInfo();
       treasuryContext = formatTreasuryForAgent(treasuryInfo);
+      console.log('✅ Treasury fetched:', {
+        total: treasuryInfo.totalAssets.toFixed(4),
+        available: treasuryInfo.availableAssets.toFixed(4),
+        utilization: treasuryInfo.utilizationRate.toFixed(1) + '%'
+      });
     } catch (error) {
-      console.error('Error fetching treasury info:', error);
+      console.error('❌ Error fetching treasury info:', error);
       // Treasury read failed - use simple fallback with reasonable defaults
       treasuryContext = `
 TREASURY STATUS (Fallback - contract read failed):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ Unable to fetch live data - using fallback estimates
 Total Treasury: ~1.0 RON (estimated)
 Available for Projects: ~0.8 RON
 
@@ -55,7 +65,17 @@ Suggest budgets in the 0.05-0.15 RON range for most projects.
 `;
     }
 
-    // 3. Fetch user profile if wallet address is provided
+    // 3. Fetch admin suggestions for job guidance
+    let adminGuidance = '';
+    try {
+      const suggestions = await getAdminSuggestions();
+      adminGuidance = suggestions?.suggestions || DEFAULT_JOB_SUGGESTIONS;
+    } catch (error) {
+      console.error('Error fetching admin suggestions:', error);
+      adminGuidance = DEFAULT_JOB_SUGGESTIONS;
+    }
+
+    // 4. Fetch user profile if wallet address is provided
     let userContext = '';
     if (walletAddress) {
       try {
@@ -77,7 +97,7 @@ Use this context to personalize project recommendations and interactions.
       }
     }
 
-    // 4. Load full chat history from database for context
+    // 5. Load full chat history from database for context
     let messages: Message[] = [];
     if (walletAddress) {
       try {
@@ -93,11 +113,11 @@ Use this context to personalize project recommendations and interactions.
       }
     }
 
-    // 5. Get the agent with BOTH user context AND treasury context
-    const fullContext = treasuryContext + '\n' + userContext;
+    // 6. Get the agent with treasury context, user context, AND admin guidance
+    const fullContext = treasuryContext + '\n' + adminGuidance + '\n' + userContext;
     const agent = await createAgent(fullContext);
 
-    // 6. INJECT Twitter search results BEFORE user message (Grok Live Search doesn't work properly)
+    // 7. INJECT Twitter search results BEFORE user message (Grok Live Search doesn't work properly)
     if (process.env.GROK_API_KEY && (userMessage.toLowerCase().includes('job') || userMessage.toLowerCase().includes('task') || userMessage.toLowerCase().includes('project'))) {
       try {
         const twitterResponse = await fetch('http://localhost:3000/api/twitter-search', {
@@ -145,15 +165,46 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
       content: userMessage
     });
 
-    // 7. Generate response with full conversation context
+    // 7. ALWAYS remind agent of current treasury (not just on keywords)
+    // This ensures budget discussions are ALWAYS grounded in reality
+    console.log('🤖 Agent tools available:', Object.keys(agent.tools));
+    console.log('📝 User message:', userMessage);
+
+    // Add treasury reminder to EVERY message about jobs/budgets
+    const isJobDiscussion = userMessage.toLowerCase().includes('job') ||
+                           userMessage.toLowerCase().includes('project') ||
+                           userMessage.toLowerCase().includes('budget') ||
+                           userMessage.toLowerCase().includes('task') ||
+                           userMessage.toLowerCase().includes('assign') ||
+                           userMessage.toLowerCase().includes('work');
+
+    if (treasuryInfo && isJobDiscussion) {
+      const treasuryReminder = `\n\n💰 [CURRENT TREASURY STATUS - Use this for ALL budget decisions]:\n` +
+                              `Total: ${treasuryInfo.totalAssets.toFixed(4)} RON | ` +
+                              `Available: ${treasuryInfo.availableAssets.toFixed(4)} RON | ` +
+                              `Already Allocated: ${treasuryInfo.allocatedAssets.toFixed(4)} RON\n`;
+
+      messages[messages.length - 1].content += treasuryReminder;
+      console.log('💰 Treasury reminder added to job discussion');
+    }
+
     const generateConfig: any = {
       model: agent.model,
       system: agent.system,
       tools: agent.tools,
+      toolChoice: 'auto', // Enable tool calling
       messages,
       maxSteps: agent.maxSteps,
       experimental_telemetry: {
         isEnabled: true,
+      },
+      onStepFinish: ({ toolCalls, toolResults }: any) => {
+        if (toolCalls && toolCalls.length > 0) {
+          console.log('🔧 Tool calls made:', toolCalls.map((tc: any) => tc.toolName));
+        }
+        if (toolResults && toolResults.length > 0) {
+          console.log('📊 Tool results:', toolResults);
+        }
       },
     };
 

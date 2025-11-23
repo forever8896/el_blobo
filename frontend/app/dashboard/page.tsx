@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAgent } from "../hooks/useAgent";
+import { useTreasury } from "../hooks/useTreasury";
 import ReactMarkdown from "react-markdown";
 import { OnboardingData } from "../types/onboarding";
 import WorkSubmission from "../components/WorkSubmission";
@@ -30,6 +31,9 @@ export default function Dashboard() {
   // Wagmi hooks for wallet connection in header
   const { address: connectedWallet, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+
+  // Treasury hook for displaying vault balance
+  const { treasuryInfo, vaultAddress, isLoading: isTreasuryLoading, error: treasuryError } = useTreasury();
 
   // Pass wallet address to useAgent hook - will load chat history internally
   const { messages, sendMessage, isThinking } = useAgent(userData?.walletAddress);
@@ -245,7 +249,7 @@ export default function Dashboard() {
       <div className="scanline" />
 
       {/* Terminal Header */}
-      <div className="border-b-2 border-blob-cobalt bg-blob-violet z-10 px-8 py-4">
+      <div className="border-b-2 border-blob-cobalt bg-blob-violet z-50 px-8 py-4 relative">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-6">
             <pre className="text-blob-mint text-2xl font-mono font-bold drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
@@ -259,6 +263,104 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Treasury Vault Info - Hover to expand */}
+            <div className="relative group">
+              <div className="flex items-center gap-2 px-4 py-2 bg-black/40 border-2 border-blob-mint cursor-help transition-all hover:border-blob-green hover:shadow-[4px_4px_0px_rgba(79,255,176,0.3)]">
+                <div className="font-mono text-xs">
+                  <p className="text-blob-peach text-[10px]">VAULT</p>
+                  <p className="text-blob-mint font-bold">
+                    {vaultAddress.slice(0, 6)}...{vaultAddress.slice(-4)}
+                  </p>
+                </div>
+                {!isTreasuryLoading && treasuryInfo && (
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400">Balance</p>
+                    <p className="text-blob-green font-bold text-sm">
+                      {treasuryInfo.availableAssets.toFixed(2)} RON
+                    </p>
+                  </div>
+                )}
+                {isTreasuryLoading && (
+                  <div className="text-blob-peach text-xs animate-pulse">...</div>
+                )}
+              </div>
+
+              {/* Hover Dropdown - Detailed Treasury Info */}
+              <div className="absolute top-full right-0 mt-2 w-80 bg-black border-2 border-blob-mint shadow-[8px_8px_0px_rgba(79,255,176,0.2)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]">
+                <div className="p-4 font-mono text-xs space-y-3">
+                  <div className="border-b border-blob-cobalt pb-2">
+                    <h3 className="text-blob-peach font-bold text-sm mb-1">TREASURY VAULT</h3>
+                    <p className="text-gray-400 text-[10px]">On-chain balance • Ronin Saigon</p>
+                  </div>
+
+                  {isTreasuryLoading ? (
+                    <div className="text-blob-peach animate-pulse">Loading treasury data...</div>
+                  ) : treasuryError ? (
+                    <div className="text-blob-orange">
+                      <p className="font-bold">Error</p>
+                      <p className="text-[10px] text-gray-400">{treasuryError}</p>
+                    </div>
+                  ) : treasuryInfo ? (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Total Assets:</span>
+                          <span className="text-white font-bold">{treasuryInfo.totalAssets.toFixed(4)} RON</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Available:</span>
+                          <span className="text-blob-green font-bold">{treasuryInfo.availableAssets.toFixed(4)} RON</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Allocated:</span>
+                          <span className="text-blob-orange">{treasuryInfo.allocatedAssets.toFixed(4)} RON</span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-blob-cobalt pt-2 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Total Shares:</span>
+                          <span className="text-white">{treasuryInfo.totalShares.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Unallocated:</span>
+                          <span className="text-blob-green">{treasuryInfo.unallocatedShares.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-blob-cobalt pt-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-gray-400">Utilization Rate:</span>
+                          <span className={`font-bold ${
+                            treasuryInfo.utilizationRate > 80 ? 'text-blob-orange' :
+                            treasuryInfo.utilizationRate > 60 ? 'text-yellow-400' :
+                            'text-blob-green'
+                          }`}>
+                            {treasuryInfo.utilizationRate.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-800 border border-blob-cobalt">
+                          <div
+                            className={`h-full transition-all ${
+                              treasuryInfo.utilizationRate > 80 ? 'bg-blob-orange' :
+                              treasuryInfo.utilizationRate > 60 ? 'bg-yellow-400' :
+                              'bg-blob-green'
+                            }`}
+                            style={{ width: `${Math.min(treasuryInfo.utilizationRate, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="border-t border-blob-cobalt pt-2">
+                        <p className="text-[10px] text-gray-500">
+                          Contract: <span className="text-blob-mint">{vaultAddress}</span>
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </div>
             {/* Test Submission Link */}
             <button
               onClick={() => router.push('/test-submission')}
@@ -301,7 +403,7 @@ export default function Dashboard() {
           <div className="absolute bottom-20 right-10 w-96 h-96 border border-blob-mint rounded-none rotate-12" />
         </div>
 
-        <div className="w-full max-w-7xl h-[calc(100vh-200px)] flex flex-col bg-black/40 border-2 border-blob-cobalt shadow-[8px_8px_0px_#1E4CDD] z-10">
+        <div className="w-full max-w-7xl h-[calc(100vh-200px)] flex flex-col bg-black/40 border-2 border-blob-cobalt shadow-[8px_8px_0px_#1E4CDD] z-0">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 font-mono">
             {messages.length === 0 ? (
@@ -317,6 +419,46 @@ export default function Dashboard() {
                 <p className="text-xl text-blob-peach">
                   &gt; SYSTEM READY. AWAITING INPUT...
                 </p>
+
+                {/* Treasury Status Welcome Card */}
+                {treasuryInfo && !isTreasuryLoading && (
+                  <div className="bg-black/60 border-2 border-blob-cobalt p-6 max-w-2xl">
+                    <div className="font-mono space-y-4">
+                      <div className="text-center border-b border-blob-cobalt pb-3">
+                        <h3 className="text-blob-mint font-bold text-lg">TREASURY STATUS</h3>
+                        <p className="text-xs text-gray-400 mt-1">Live on-chain data • Ronin Saigon Testnet</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-xs text-gray-400">Total Assets</p>
+                          <p className="text-white font-bold text-xl">{treasuryInfo.totalAssets.toFixed(2)}</p>
+                          <p className="text-xs text-blob-mint">RON</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Available</p>
+                          <p className="text-blob-green font-bold text-xl">{treasuryInfo.availableAssets.toFixed(2)}</p>
+                          <p className="text-xs text-blob-green">RON</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Allocated</p>
+                          <p className="text-blob-orange font-bold text-xl">{treasuryInfo.allocatedAssets.toFixed(2)}</p>
+                          <p className="text-xs text-blob-orange">RON</p>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-blob-cobalt pt-3">
+                        <p className="text-xs text-gray-400 text-center mb-2">
+                          When THE BLOB assigns you jobs, all budgets come from this treasury.
+                        </p>
+                        <p className="text-xs text-center text-blob-peach">
+                          💡 Hover over the vault badge in the header for more details
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2 text-sm text-gray-500 text-center">
                   <p>[ Ask about jobs | Check progress | Invite others ]</p>
                 </div>
