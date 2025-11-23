@@ -260,6 +260,11 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
     let { text } = result;
     let projectCreatedMessage = '';
 
+    // Check for tool errors first (used in multiple places)
+    const hadToolError = result.steps?.some((step: any) =>
+      step.content?.some((c: any) => c.type === 'tool-error' || (c.output && JSON.stringify(c.output).includes('ZodError')))
+    );
+
     // GROK 4.1 WORKAROUND: Extract parameters from XML and execute directly
     // Since Grok outputs XML but AgentKit can't parse it, we do it manually
     // Check both result.text and steps for XML parameters
@@ -379,7 +384,79 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
           projectCreatedMessage = `\n\n❌ **Project creation error**: ${dbError.message}\n\nThe project parameters were extracted but database creation failed. Please try again.`;
         }
       } else {
-        console.log('⚠️ Incomplete XML parameters:', { projectKey: !!projectKey, title: !!title, budgetStr: !!budgetStr });
+        console.log('⚠️ Incomplete XML parameters:', { projectKey: !!projectKey, title: !!title, budgetRON: budgetRON });
+      }
+    } else if (hadToolError && result.steps?.some((s: any) =>
+      s.content?.some((c: any) => c.toolName === 'CustomActionProvider_create_project_onchain')
+    )) {
+      // NO XML but tool was called - extract from last assistant message
+      console.log('📋 No XML but project tool was called - extracting from conversation...');
+
+      const lastAssistantMsg = messages.filter(m => m.role === 'assistant').pop();
+      if (lastAssistantMsg && walletAddress) {
+        const titleMatch = lastAssistantMsg.content?.match(/\*\*Title[:\s]+([^\n*]+)/i) ||
+                          lastAssistantMsg.content?.match(/Title[:\s]+([^\n]+)/i);
+        const descMatch = lastAssistantMsg.content?.match(/\*\*Description[:\s]+([^\n*]+)/i) ||
+                         lastAssistantMsg.content?.match(/Description[:\s]+([^\n]+)/i);
+        const budgetMatch = lastAssistantMsg.content?.match(/Budget[:\s]+(\d+\.?\d*)\s*RON/i);
+        const durationMatch = lastAssistantMsg.content?.match(/Timeline[:\s]+(\d+)\s*days?/i) ||
+                             lastAssistantMsg.content?.match(/Deadline[:\s]+(\d+)\s*days?/i);
+
+        if (titleMatch && budgetMatch) {
+          const title = titleMatch[1].trim();
+          const description = descMatch ? descMatch[1].trim() : title;
+          const budgetRON = parseFloat(budgetMatch[1]);
+          const durationDays = durationMatch ? parseInt(durationMatch[1]) : 7;
+
+          console.log('✅ Extracted from conversation:', { title, budget: budgetRON });
+          console.log('🚀 Creating project directly from conversation context...');
+
+          try {
+            const { createProject } = await import('@/app/lib/db-neon');
+
+            console.log('💾 Creating project in database...');
+            const dbProject = await createProject({
+              contractKey: walletAddress,
+              assigneeAddress: walletAddress,
+              title,
+              description,
+            });
+
+            console.log('✅ Project created in DB with ID:', dbProject.id);
+
+            // Try on-chain registration
+            try {
+              const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || '0x4d3071a94f7b614f06a5b12122e0b922b859d30fa92e1a691645ffd402dc686f';
+              const MAIN_CONTRACT = '0x46F59fF2F2ea9A2f5184B63c947346cF7171F1C3';
+
+              const budgetWei = BigInt(Math.floor(budgetRON * 1e18));
+              const now = Math.floor(Date.now() / 1000);
+              const endDeadline = now + (durationDays * 24 * 60 * 60);
+              const zeroAddress = '0x0000000000000000000000000000000000000000';
+
+              const castCmd = `cast send ${MAIN_CONTRACT} "createProject(address,address,uint64,uint64,uint256,uint256,address)" ${walletAddress} ${walletAddress} ${now} ${endDeadline} ${dbProject.id} ${budgetWei} ${zeroAddress} --private-key ${DEPLOYER_PRIVATE_KEY} --rpc-url https://saigon-testnet.roninchain.com/rpc`;
+
+              const { exec } = await import('child_process');
+              const { promisify } = await import('util');
+              const execAsync = promisify(exec);
+
+              const { stdout } = await execAsync(castCmd);
+              const txMatch = stdout.match(/transactionHash\s+(.+)/);
+              const txHash = txMatch ? txMatch[1].trim() : 'pending';
+
+              console.log('✅ Project registered on-chain! TX:', txHash);
+
+              projectCreatedMessage = `\n\n✅ **Project successfully created!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Blockchain TX: ${txHash}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n- Assignee: ${walletAddress}\n\n🚀 **You can start working now!** The ${budgetRON} RON will be released when you submit your work and it's approved by the AI council.`;
+
+            } catch (chainError: any) {
+              console.error('⚠️ On-chain registration failed:', chainError.message);
+              projectCreatedMessage = `\n\n✅ **Project created in database!**\n\n📋 **Project Details:**\n- Database ID: ${dbProject.id}\n- Title: ${title}\n- Budget: ${budgetRON} RON\n- Deadline: ${durationDays} days\n\n⚠️ On-chain registration pending. You can start working!`;
+            }
+
+          } catch (dbError: any) {
+            console.error('❌ DB creation failed:', dbError);
+          }
+        }
       }
     }
 
@@ -408,9 +485,6 @@ USE THIS REAL DATA to propose specific, data-driven projects!`;
         typeof c.output === 'string' &&
         c.output.includes('Project created')
       )
-    );
-    const hadToolError = result.steps?.some((step: any) =>
-      step.content?.some((c: any) => c.type === 'tool-error' || (c.output && JSON.stringify(c.output).includes('ZodError')))
     );
 
     console.log('🔍 Hallucination check:', {
